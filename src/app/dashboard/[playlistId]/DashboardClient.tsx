@@ -86,7 +86,9 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     runningRef.current = true;
     startTimeRef.current = Date.now();
 
-    await fetch("/api/playlist-status", {
+    // Fire-and-forget — we don't need to wait for the DB write before
+    // starting transcription. Workers begin immediately.
+    fetch("/api/playlist-status", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: playlist.id, status: "processing" }),
@@ -158,7 +160,8 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
       Math.round((Date.now() - (startTimeRef.current ?? Date.now())) / 1000),
     );
 
-    await fetch("/api/playlist-status", {
+    // Fire-and-forget — modal appears immediately after all videos finish.
+    fetch("/api/playlist-status", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: playlist.id, status: "completed" }),
