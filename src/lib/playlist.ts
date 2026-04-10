@@ -139,7 +139,7 @@ export async function fetchPlaylistInfo(
   // (more reliable than parsing the full ytcfg JSON blob)
   const apiKey =
     extractInlineValue(html, "INNERTUBE_API_KEY") ??
-    "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+    process.env.INNERTUBE_API_KEY_FALLBACK;
   const clientVersion =
     extractInlineValue(html, "INNERTUBE_CLIENT_VERSION") ?? "2.20240101.00.00";
 
