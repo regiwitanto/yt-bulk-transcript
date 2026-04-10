@@ -138,6 +138,9 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
       {/* Header */}
       <header className="border-b px-6 py-4 flex items-center justify-between gap-4">
         <div className="min-w-0">
+          {playlist.channel_name && (
+            <p className="text-xs text-muted-foreground">{playlist.channel_name}</p>
+          )}
           <h1 className="font-bold text-lg truncate">{playlist.title}</h1>
           <p className="text-sm text-muted-foreground">
             {isComplete ? "Complete" : `Processing ${done} / ${total}`}
@@ -147,7 +150,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           {isComplete && dismissed && (
             <Button
               size="sm"
-              onClick={() => downloadCombined(videos, playlist.title)}
+              onClick={() => downloadCombined(videos, playlist.title, playlist.channel_name)}
             >
               Download (.txt)
             </Button>
@@ -160,14 +163,6 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           >
             ← Home
           </button>
-          <a
-            href="https://buymeacoffee.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonVariantOutlineSm}
-          >
-            ☕ Support
-          </a>
         </div>
       </header>
 
@@ -229,7 +224,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             </p>
             <div className="flex flex-col gap-3">
               <Button
-                onClick={() => downloadCombined(videos, playlist.title)}
+                onClick={() => downloadCombined(videos, playlist.title, playlist.channel_name)}
                 size="lg"
               >
                 Download Transcripts (.txt)
@@ -253,7 +248,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   );
 }
 
-function downloadCombined(videos: Video[], playlistTitle: string) {
+function downloadCombined(videos: Video[], playlistTitle: string, channelName: string | null) {
   const successVideos = videos.filter(
     (v) => v.status === "success" && v.transcript,
   );
@@ -265,9 +260,14 @@ function downloadCombined(videos: Video[], playlistTitle: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
-    .slice(0, 60);
-  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const filename = `${slug}-transcripts-${date}.txt`;
+    .slice(0, 50);
+  const channelSlug = channelName
+    ? channelName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) + "-"
+    : "";
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+  const filename = `${channelSlug}${slug}-${ts}.txt`;
 
   const blob = new Blob([text], { type: "text/plain" });
   const url = URL.createObjectURL(blob);

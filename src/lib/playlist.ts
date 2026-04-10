@@ -5,6 +5,7 @@ export interface PlaylistVideo {
 
 export interface PlaylistInfo {
   title: string;
+  channelName: string | null;
   videos: PlaylistVideo[];
 }
 
@@ -158,6 +159,12 @@ export async function fetchPlaylistInfo(
     data?.metadata?.playlistMetadataRenderer?.title ??
     "Untitled Playlist";
 
+  // Channel name
+  const channelName: string | null =
+    data?.sidebar?.playlistSidebarRenderer?.items?.[1]
+      ?.playlistSidebarSecondaryInfoRenderer?.videoOwner?.videoOwnerRenderer
+      ?.title?.runs?.[0]?.text ?? null;
+
   const allVideos: PlaylistVideo[] = [];
   let { videos, continuationToken } =
     extractVideosFromContents(initialContents);
@@ -223,5 +230,5 @@ export async function fetchPlaylistInfo(
 
   console.log(`[playlist] Total videos fetched: ${allVideos.length}`);
 
-  return { title: playlistTitle, videos: allVideos };
+  return { title: playlistTitle, channelName, videos: allVideos };
 }

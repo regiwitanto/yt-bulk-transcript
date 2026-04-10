@@ -32,6 +32,7 @@ export type Database = {
           user_id: string | null;
           url: string;
           title: string;
+          channel_name: string | null;
           status: PlaylistStatus;
           created_at: string;
         };
@@ -40,11 +41,13 @@ export type Database = {
           user_id?: string | null;
           url: string;
           title: string;
+          channel_name?: string | null;
           status?: PlaylistStatus;
           created_at?: string;
         };
         Update: {
           title?: string;
+          channel_name?: string | null;
           status?: PlaylistStatus;
         };
         Relationships: [];

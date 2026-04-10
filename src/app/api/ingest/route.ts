@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
       user_id: userId ?? null,
       url,
       title: playlistInfo.title,
+      channel_name: playlistInfo.channelName,
       status: "pending",
     })
     .select()

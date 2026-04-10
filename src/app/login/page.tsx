@@ -19,7 +19,8 @@ export default function LoginPage({
         <CardHeader className="text-center space-y-1">
           <CardTitle className="text-2xl">YouTube Bulk Transcript</CardTitle>
           <CardDescription>
-            Sign in to save your progress and resume large downloads anytime.
+            Sign in to keep a history of all your past playlists and revisit
+            them anytime.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">

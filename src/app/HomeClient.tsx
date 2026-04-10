@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { Fragment, useState } from "react";
+import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -148,15 +149,21 @@ export default function HomeClient({ userEmail }: Props) {
     <div className="flex flex-col min-h-screen">
       {/* Header */}
       <header className="border-b px-6 py-4 flex items-center justify-between">
-        <a
+        <Link
           href="/"
           className="font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"
         >
           YouTube Bulk Transcript
-        </a>
+        </Link>
         <div className="flex items-center gap-3">
           {userEmail ? (
             <>
+              <a
+                href="/history"
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+              >
+                History
+              </a>
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {userEmail}
               </span>
@@ -186,11 +193,10 @@ export default function HomeClient({ userEmail }: Props) {
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center gap-10">
         <div className="max-w-2xl space-y-4">
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-            YouTube Bulk Transcript Extractor
+            YouTube Bulk Transcript
           </h1>
           <p className="text-muted-foreground text-lg">
-            Paste a playlist or video URL &mdash; we&apos;ll detect it
-            automatically.
+            Paste a playlist or video URL.
           </p>
         </div>
 
