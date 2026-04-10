@@ -17,10 +17,10 @@ export default function LoginPage({
     <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-1">
-          <CardTitle className="text-2xl">YouTube Bulk Transcript</CardTitle>
+          <CardTitle className="text-2xl">Sign in to continue</CardTitle>
           <CardDescription>
-            Sign in to keep a history of all your past playlists and revisit
-            them anytime.
+            Playlist extraction requires an account. You'll also get a history
+            of all your transcripts.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">

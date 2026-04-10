@@ -65,7 +65,7 @@ export default function HomeClient({ userEmail }: Props) {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [pendingSignOut, setPendingSignOut] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Single video result
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -115,6 +115,11 @@ export default function HomeClient({ userEmail }: Props) {
     setLoading(true);
     try {
       if (type === "playlist") {
+        if (!userEmail) {
+          setError("__playlist_login__");
+          setLoading(false);
+          return;
+        }
         const res = await fetch("/api/ingest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -202,7 +207,7 @@ export default function HomeClient({ userEmail }: Props) {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="border-b px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-background border-b px-6 py-4 flex items-center justify-between">
         <Link
           href="/"
           className="font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"
@@ -221,44 +226,20 @@ export default function HomeClient({ userEmail }: Props) {
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {userEmail}
               </span>
-              {pendingSignOut ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Sign out?
-                  </span>
-                  <button
-                    type="button"
-                    className={cn(
-                      buttonVariants({ variant: "destructive", size: "sm" }),
-                    )}
-                    onClick={async () => {
-                      await fetch("/api/auth/signout", { method: "POST" });
-                      window.location.href = "/login";
-                    }}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "sm" }),
-                    )}
-                    onClick={() => setPendingSignOut(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                  )}
-                  onClick={() => setPendingSignOut(true)}
-                >
-                  Sign Out
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={signingOut}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                )}
+                onClick={async () => {
+                  setSigningOut(true);
+                  await fetch("/api/auth/signout", { method: "POST" });
+                  window.location.href = "/";
+                }}
+              >
+                {signingOut ? "Signing out…" : "Sign Out"}
+              </button>
             </>
           ) : (
             <Link
@@ -272,136 +253,168 @@ export default function HomeClient({ userEmail }: Props) {
       </header>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center gap-10">
-        <div className="max-w-2xl space-y-4">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center gap-6">
+        <div className="max-w-2xl space-y-2">
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-            YouTube Bulk Transcript
+            Extract transcripts from any YouTube video or playlist
           </h1>
           <p className="text-muted-foreground text-lg">
-            Paste a playlist or video URL.
+            Paste a YouTube URL and download the transcript as a .txt file.
           </p>
         </div>
 
-        <form
-          onSubmit={handleExtract}
-          className="w-full max-w-xl flex flex-col gap-3"
-        >
-          <label htmlFor="yt-url" className="sr-only">
-            YouTube URL
-          </label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Input
-                id="yt-url"
-                type="url"
-                placeholder="https://youtube.com/playlist?list=PL... or watch?v=..."
-                value={url}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  if (!e.target.value.trim()) {
-                    setTranscript(null);
-                    setFetchDuration(null);
-                    setError("");
-                  }
-                }}
-                className="pr-8"
-                disabled={loading}
-                aria-describedby={error ? "yt-url-error" : undefined}
-              />
-              {url && !loading && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUrl("");
-                    setTranscript(null);
-                    setFetchDuration(null);
-                    setError("");
+        <div className="w-full max-w-xl flex flex-col gap-3">
+          <form onSubmit={handleExtract} className="flex flex-col gap-3">
+            <label htmlFor="yt-url" className="sr-only">
+              YouTube URL
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="yt-url"
+                  type="url"
+                  placeholder="https://youtube.com/playlist?list=PL... or watch?v=..."
+                  value={url}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    if (!e.target.value.trim()) {
+                      setTranscript(null);
+                      setFetchDuration(null);
+                      setError("");
+                    }
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Clear"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+                  className="pr-8"
+                  disabled={loading}
+                  aria-describedby={error ? "yt-url-error" : undefined}
+                />
+                {url && !loading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUrl("");
+                      setTranscript(null);
+                      setFetchDuration(null);
+                      setError("");
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Clear"
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              )}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2 shrink-0"
+              >
+                {loading ? (
+                  <>
+                    <Spinner /> Fetching
+                  </>
+                ) : (
+                  "Extract"
+                )}
+              </Button>
             </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 shrink-0"
-            >
-              {loading ? (
-                <>
-                  <Spinner /> Fetching
-                </>
-              ) : (
-                "Extract"
-              )}
-            </Button>
-          </div>
-          {error && (
-            <p
-              id="yt-url-error"
-              className="text-sm text-destructive text-left"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-          {info && (
-            <p
-              className="text-sm text-muted-foreground text-left"
-              role="status"
-            >
-              {info}
-            </p>
-          )}
-        </form>
-
-        {transcript && (
-          <div className="w-full max-w-xl flex flex-col gap-3 text-left">
-            {fetchDuration !== null && (
-              <p className="text-xs text-muted-foreground">
-                Fetched in {(fetchDuration / 1000).toFixed(1)}s
+            {error && (
+              <p
+                id="yt-url-error"
+                className="text-sm text-destructive text-left"
+                role="alert"
+              >
+                {error === "__playlist_login__" ? (
+                  <>
+                    Playlist extraction requires an account.{" "}
+                    <Link href="/login" className="underline hover:opacity-80">
+                      Sign in for free
+                    </Link>{" "}
+                    to use it. Single videos work without one.
+                  </>
+                ) : (
+                  error
+                )}
               </p>
             )}
-            <textarea
-              readOnly
-              value={transcript}
-              rows={10}
-              className="w-full rounded-md border bg-muted px-3 py-2 text-sm font-mono resize-y"
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={copyTranscript}
-                className="flex-1"
+            {!error &&
+              !loading &&
+              url &&
+              (() => {
+                const type = detectUrlType(url);
+                if (type === "unknown") return null;
+                return (
+                  <p className="text-xs text-muted-foreground text-left">
+                    Detected:{" "}
+                    {type === "playlist" ? "Playlist" : "Single video"}
+                  </p>
+                );
+              })()}
+            {info && (
+              <p
+                className="text-sm text-muted-foreground text-left"
+                role="status"
               >
-                {copied ? "Copied!" : "Copy"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={downloadSingle}
-                className="flex-1"
-              >
-                Download (.txt)
-              </Button>
+                {info}
+              </p>
+            )}
+          </form>
+
+          {transcript && (
+            <div className="w-full flex flex-col gap-2 text-left border rounded-lg px-4 py-3">
+              <div>
+                {videoTitle && (
+                  <p className="font-semibold text-sm truncate">{videoTitle}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {videoChannel}
+                  {videoChannel && fetchDuration !== null && " · "}
+                  {fetchDuration !== null &&
+                    `Fetched in ${(fetchDuration / 1000).toFixed(1)}s`}
+                </p>
+              </div>
+              <textarea
+                readOnly
+                value={transcript}
+                rows={10}
+                aria-label="Transcript"
+                className="w-full rounded-md border bg-muted px-3 py-2 text-sm font-mono resize-y"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={copyTranscript}
+                  className="flex-1"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={downloadSingle}
+                  className="flex-1"
+                >
+                  Download (.txt)
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* How it works */}
         <div className="w-full max-w-2xl pt-6 border-t">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground text-center mb-4">
+            How it works
+          </p>
           <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
             {STEPS.map((step, i) => (
               <Fragment key={i}>

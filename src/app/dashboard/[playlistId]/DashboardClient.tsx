@@ -26,10 +26,11 @@ const STATUS_BADGE: Record<
   {
     label: string;
     variant: "default" | "secondary" | "destructive" | "outline";
+    spinning?: boolean;
   }
 > = {
   success: { label: "Success", variant: "default" },
-  processing: { label: "Processing…", variant: "secondary" },
+  processing: { label: "Processing…", variant: "secondary", spinning: true },
   queued: { label: "Queued", variant: "outline" },
   no_transcript: { label: "No Transcript", variant: "destructive" },
   error: { label: "Error", variant: "destructive" },
@@ -204,18 +205,30 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className="font-bold text-lg truncate">{playlist.title}</h1>
-            {playlist.channel_name && (
-              <p className="text-sm text-muted-foreground">
-                by {playlist.channel_name}
-              </p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              {isComplete
-                ? "Complete"
-                : started
-                  ? `Processing ${done} / ${total}`
-                  : `${done} / ${total} done — paused`}
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              {playlist.channel_name && (
+                <span className="text-xs text-muted-foreground">
+                  {playlist.channel_name}
+                </span>
+              )}
+              {playlist.channel_name && (
+                <span className="text-xs text-muted-foreground">&middot;</span>
+              )}
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  isComplete
+                    ? "text-green-700 dark:text-green-500"
+                    : "text-muted-foreground",
+                )}
+              >
+                {isComplete
+                  ? "Complete"
+                  : started
+                    ? `Processing ${done} / ${total}`
+                    : `${done} / ${total} done — paused`}
+              </span>
+            </div>
           </div>
           <div className="flex gap-2 shrink-0">
             {isComplete && dismissed && (
@@ -241,15 +254,28 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               History
             </Link>
             <Link href="/" className={buttonVariantOutlineSm}>
-              ← Home
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3.5 w-3.5 mr-1"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Home
             </Link>
           </div>
         </div>
-        <div>
-          <Progress value={progress} className="h-2" />
-          <p className="text-xs text-muted-foreground mt-1 text-right">
+        <div className="flex items-center gap-3">
+          <Progress value={progress} className="h-2 flex-1" />
+          <span className="text-xs text-muted-foreground tabular-nums w-9 text-right shrink-0">
             {progress}%
-          </p>
+          </span>
         </div>
       </header>
 
@@ -269,7 +295,35 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                     {(videoDurations[video.id] / 1000).toFixed(1)}s
                   </span>
                 )}
-                <Badge variant={badge.variant}>{badge.label}</Badge>
+                <Badge
+                  variant={badge.variant}
+                  className="flex items-center gap-1"
+                >
+                  {badge.spinning && (
+                    <svg
+                      className="animate-spin h-3 w-3 shrink-0"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                  )}
+                  {badge.label}
+                </Badge>
               </div>
             );
           })}
@@ -292,16 +346,35 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
 
       {/* Completion export modal */}
       {isComplete && !dismissed && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-background rounded-xl shadow-xl p-8 max-w-md w-full space-y-6 text-center relative">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="done-title"
+        >
+          <div className="bg-background rounded-xl shadow-xl p-6 max-w-md w-full space-y-4 text-center relative">
             <button
               onClick={() => setDismissed(true)}
-              className="absolute top-3 right-4 text-muted-foreground hover:text-foreground text-xl leading-none"
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               aria-label="Close"
             >
-              ×
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </button>
-            <h2 className="text-2xl font-bold">🎉 All done!</h2>
+            <h2 id="done-title" className="text-2xl font-bold">
+              All done!
+            </h2>
             <div className="text-muted-foreground space-y-1">
               {(() => {
                 const succeeded = videos.filter(
@@ -338,7 +411,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                 );
               })()}
             </div>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <Button
                 disabled={downloading}
                 onClick={() => {
@@ -358,15 +431,15 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                 View History
               </Link>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Finding this useful?{" "}
               <a
                 href="https://buymeacoffee.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline"
+                className="underline hover:text-foreground"
               >
-                Buy Me a Coffee ☕
+                Buy Me a Coffee
               </a>
             </p>
           </div>

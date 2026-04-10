@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%23ff0000'/><polygon points='38,28 75,50 38,72' fill='white'/></svg>",
+        url: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%23000'/><rect x='22' y='30' width='56' height='8' rx='4' fill='white'/><rect x='22' y='46' width='56' height='8' rx='4' fill='white'/><rect x='22' y='62' width='36' height='8' rx='4' fill='white'/></svg>",
         type: "image/svg+xml",
       },
     ],

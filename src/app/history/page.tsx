@@ -72,7 +72,7 @@ export default async function HistoryPage({
             href="/"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
-            + New Transcript
+            New Transcript
           </Link>
         </div>
 

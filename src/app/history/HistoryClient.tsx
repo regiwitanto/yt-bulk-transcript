@@ -120,7 +120,7 @@ export default function HistoryClient({
     <>
       {/* Bulk action bar */}
       {(selected.size > 0 || crossPageAll) && (
-        <div className="flex flex-col gap-2 mb-3">
+        <div className="flex flex-col gap-2 mb-3 sticky top-0 z-20 bg-background py-2 -mx-1 px-1 border-b">
           <div className="flex items-center justify-between px-1">
             <span className="text-sm text-muted-foreground">
               {crossPageAll
@@ -196,13 +196,22 @@ export default function HistoryClient({
       )}
 
       {rows.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg">No transcripts yet.</p>
-          <p className="text-sm mt-1">
-            <Link href="/" className="underline hover:text-foreground">
-              Start by extracting a playlist
-            </Link>
+        <div className="text-center py-20 flex flex-col items-center gap-3 text-muted-foreground">
+          <p className="text-base font-medium text-foreground">
+            No transcripts yet
           </p>
+          <p className="text-sm">
+            Extract a playlist or single video to see it here.
+          </p>
+          <Link
+            href="/"
+            className={cn(
+              buttonVariants({ variant: "default", size: "sm" }),
+              "mt-2",
+            )}
+          >
+            New Transcript
+          </Link>
         </div>
       ) : (
         <div className="rounded-lg border divide-y">
@@ -301,7 +310,20 @@ export default function HistoryClient({
             )}
             aria-disabled={page <= 1}
           >
-            ← Previous
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3.5 w-3.5 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Previous
           </Link>
           <span className="text-xs text-muted-foreground">
             Page {page} of {totalPages}
@@ -314,7 +336,20 @@ export default function HistoryClient({
             )}
             aria-disabled={page >= totalPages}
           >
-            Next →
+            Next
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3.5 w-3.5 ml-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
           </Link>
         </div>
       )}
