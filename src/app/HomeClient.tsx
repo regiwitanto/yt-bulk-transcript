@@ -46,9 +46,8 @@ function detectUrlType(raw: string): "playlist" | "single" | "unknown" {
     const isYoutuBe = parsed.hostname === "youtu.be";
 
     if (isYoutuBe) return "single";
-    if (hasList && !hasVideo) return "playlist";
-    if (hasList && hasVideo) return "playlist"; // video inside a playlist â†’ treat as playlist
-    if (hasVideo) return "single";
+    if (hasVideo) return "single"; // v= always means a specific video
+    if (hasList) return "playlist";
     return "unknown";
   } catch {
     return "unknown";
