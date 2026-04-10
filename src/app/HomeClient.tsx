@@ -62,6 +62,7 @@ interface Props {
 export default function HomeClient({ userEmail }: Props) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Single video result
@@ -110,7 +111,7 @@ export default function HomeClient({ userEmail }: Props) {
         }
         if (data.duplicate) {
           if (data.newVideos > 0) {
-            setError(
+            setInfo(
               `${data.newVideos} new video${data.newVideos !== 1 ? "s" : ""} found and queued. Redirecting…`,
             );
             window.location.href = `/dashboard/${data.playlistId}`;
@@ -300,6 +301,14 @@ export default function HomeClient({ userEmail }: Props) {
               role="alert"
             >
               {error}
+            </p>
+          )}
+          {info && (
+            <p
+              className="text-sm text-muted-foreground text-left"
+              role="status"
+            >
+              {info}
             </p>
           )}
         </form>
