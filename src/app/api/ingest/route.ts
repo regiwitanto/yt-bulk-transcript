@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createClient } from "@/lib/supabase-server";
 import { extractPlaylistId, fetchPlaylistInfo } from "@/lib/playlist";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const CHUNK_SIZE = 100;
 
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!checkRateLimit(`ingest:${ip}`, { limit: 10, windowMs: 60_000 })) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a minute and try again." },
+      { status: 429 },
+    );
+  }
+
   const body = await request.json();
   const { url } = body as { url?: string };
 

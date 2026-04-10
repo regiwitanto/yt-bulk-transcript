@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -73,12 +73,21 @@ export default function HomeClient({ userEmail }: Props) {
   const [videoChannel, setVideoChannel] = useState<string | null>(null);
   const [fetchDuration, setFetchDuration] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
 
   async function copyTranscript() {
     if (!transcript) return;
     await navigator.clipboard.writeText(transcript);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleExtract(e: React.FormEvent) {

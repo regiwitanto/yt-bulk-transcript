@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { fetchTranscript } from "@/lib/youtube";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 
 const MAX_RETRIES = 3;
 
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!checkRateLimit(`transcribe:${ip}`, { limit: 60, windowMs: 60_000 })) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+
   const supabase = await createClient();
   // getSession() validates the JWT locally from the cookie — no Supabase
   // network round-trip. Safe here because ownership was already verified
