@@ -21,8 +21,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "text-muted-foreground",
-  processing: "text-blue-500",
-  completed: "text-green-600",
+  processing: "text-primary",
+  completed: "text-green-700 dark:text-green-500",
 };
 
 interface Props {
@@ -44,6 +44,7 @@ export default function HistoryClient({
   const [crossPageAll, setCrossPageAll] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const allPageSelected = rows.length > 0 && selected.size === rows.length;
   const showCrossPageBanner =
@@ -73,6 +74,7 @@ export default function HistoryClient({
   async function handleDelete() {
     if (!crossPageAll && selected.size === 0) return;
     setDeleting(true);
+    setDeleteError("");
     try {
       const body = crossPageAll
         ? { deleteAll: true }
@@ -82,7 +84,10 @@ export default function HistoryClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setDeleteError("Delete failed. Please try again.");
+        return;
+      }
 
       if (crossPageAll) {
         // All deleted — go to page 1 (will show empty state)
@@ -182,6 +187,12 @@ export default function HistoryClient({
             </div>
           )}
         </div>
+      )}
+
+      {deleteError && (
+        <p className="text-sm text-destructive mb-3" role="alert">
+          {deleteError}
+        </p>
       )}
 
       {rows.length === 0 ? (

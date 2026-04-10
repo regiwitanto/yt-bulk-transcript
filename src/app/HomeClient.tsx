@@ -80,6 +80,7 @@ export default function HomeClient({ userEmail }: Props) {
   async function handleExtract(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setInfo("");
     setTranscript(null);
     setFetchDuration(null);
 
@@ -189,21 +190,19 @@ export default function HomeClient({ userEmail }: Props) {
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {userEmail}
               </span>
-              <form action="/api/auth/signout" method="POST">
-                <button
-                  type="button"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                  )}
-                  onClick={async () => {
-                    if (!confirm("Sign out?")) return;
-                    await fetch("/api/auth/signout", { method: "POST" });
-                    window.location.href = "/login";
-                  }}
-                >
-                  Sign Out
-                </button>
-              </form>
+              <button
+                type="button"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                )}
+                onClick={async () => {
+                  if (!confirm("Sign out?")) return;
+                  await fetch("/api/auth/signout", { method: "POST" });
+                  window.location.href = "/login";
+                }}
+              >
+                Sign Out
+              </button>
             </>
           ) : (
             <a
