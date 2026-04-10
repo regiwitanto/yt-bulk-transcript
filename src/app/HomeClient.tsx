@@ -69,6 +69,8 @@ export default function HomeClient({ userEmail }: Props) {
 
   // Single video result
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [videoTitle, setVideoTitle] = useState<string | null>(null);
+  const [videoChannel, setVideoChannel] = useState<string | null>(null);
   const [fetchDuration, setFetchDuration] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -84,6 +86,8 @@ export default function HomeClient({ userEmail }: Props) {
     setError("");
     setInfo("");
     setTranscript(null);
+    setVideoTitle(null);
+    setVideoChannel(null);
     setFetchDuration(null);
 
     if (!url.trim()) {
@@ -140,6 +144,8 @@ export default function HomeClient({ userEmail }: Props) {
         }
         setFetchDuration(Date.now() - t0);
         setTranscript(data.transcript);
+        setVideoTitle(data.title ?? null);
+        setVideoChannel(data.channelName ?? null);
       }
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -154,18 +160,35 @@ export default function HomeClient({ userEmail }: Props) {
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = blobUrl;
-    let videoId: string;
-    try {
-      const parsed = new URL(url);
-      videoId =
-        parsed.searchParams.get("v") ||
-        parsed.pathname.split("/").filter(Boolean).pop() ||
-        "video";
-    } catch {
-      videoId = "video";
-    }
-    const date = new Date().toISOString().slice(0, 10);
-    a.download = `${videoId}-transcript-${date}.txt`;
+
+    const slugify = (s: string, max: number) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, max);
+
+    const channelSlug = videoChannel ? slugify(videoChannel, 30) + "-" : "";
+    const titleSlug = videoTitle
+      ? slugify(videoTitle, 50)
+      : (() => {
+          try {
+            const parsed = new URL(url);
+            return (
+              parsed.searchParams.get("v") ||
+              parsed.pathname.split("/").filter(Boolean).pop() ||
+              "video"
+            );
+          } catch {
+            return "video";
+          }
+        })();
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+
+    a.download = `${channelSlug}${titleSlug}-${ts}.txt`;
     a.click();
     URL.revokeObjectURL(blobUrl);
   }

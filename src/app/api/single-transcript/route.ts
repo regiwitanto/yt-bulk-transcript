@@ -41,8 +41,26 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await fetchTranscript(videoId);
-    return NextResponse.json({ transcript: result.text, videoId });
+    const [result, meta] = await Promise.allSettled([
+      fetchTranscript(videoId),
+      fetch(
+        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      ).then((r) => (r.ok ? r.json() : null)),
+    ]);
+
+    if (result.status === "rejected") throw result.reason;
+
+    const oEmbed =
+      meta.status === "fulfilled"
+        ? (meta.value as Record<string, string> | null)
+        : null;
+
+    return NextResponse.json({
+      transcript: result.value.text,
+      videoId,
+      title: oEmbed?.title ?? null,
+      channelName: oEmbed?.author_name ?? null,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     const isNoTranscript =

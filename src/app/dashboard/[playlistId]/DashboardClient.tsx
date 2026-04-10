@@ -101,30 +101,46 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     const CONCURRENCY = 5;
     let qi = 0;
 
-    const processOne = async (video: Video) => {
+    const processOne = async (video: Video, attempt = 0): Promise<void> => {
       setVideos((prev) =>
         prev.map((v) =>
           v.id === video.id ? { ...v, status: "processing" } : v,
         ),
       );
       const t0 = Date.now();
-      const res = await fetch("/api/transcribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: video.id,
-          ytVideoId: video.yt_video_id,
-          retryCount: video.retry_count ?? 0,
-        }),
-      });
-      const result = await res.json();
-      const elapsed = Date.now() - t0;
-      updateVideoStatus(
-        video.id,
-        result.status ?? "error",
-        result.transcript,
-        elapsed,
-      );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 28_000);
+      try {
+        const res = await fetch("/api/transcribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: video.id,
+            ytVideoId: video.yt_video_id,
+            retryCount: (video.retry_count ?? 0) + attempt,
+          }),
+          signal: controller.signal,
+        });
+        const result = await res.json();
+        const elapsed = Date.now() - t0;
+        // Transient failure — retry with exponential backoff (max 2 extra attempts)
+        if (result.status === "queued" && attempt < 2) {
+          const delay = 1_000 * 2 ** attempt + Math.random() * 500;
+          await new Promise((r) => setTimeout(r, delay));
+          return processOne(video, attempt + 1);
+        }
+        updateVideoStatus(
+          video.id,
+          result.status ?? "error",
+          result.transcript,
+          elapsed,
+        );
+      } catch {
+        const elapsed = Date.now() - t0;
+        updateVideoStatus(video.id, "error", undefined, elapsed);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     };
 
     const worker = async () => {
