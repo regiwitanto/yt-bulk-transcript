@@ -182,10 +182,13 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
       {/* Video list */}
       <main className="flex-1 overflow-auto px-6 py-4">
         <div className="rounded-lg border divide-y">
-          {videos.map((video) => {
+          {videos.map((video, i) => {
             const badge = STATUS_BADGE[video.status];
             return (
               <div key={video.id} className="flex items-center gap-3 px-4 py-3">
+                <span className="text-xs text-muted-foreground w-8 shrink-0 text-right">
+                  {i + 1}.
+                </span>
                 <span className="flex-1 text-sm truncate">{video.title}</span>
                 {videoDurations[video.id] !== undefined && (
                   <span className="text-xs text-muted-foreground shrink-0">
@@ -251,9 +254,11 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
 }
 
 function downloadCombined(videos: Video[], playlistTitle: string) {
-  const text = videos
-    .filter((v) => v.status === "success" && v.transcript)
-    .map((v) => `=== ${v.title} ===\n\n${v.transcript}`)
+  const successVideos = videos.filter(
+    (v) => v.status === "success" && v.transcript,
+  );
+  const text = successVideos
+    .map((v, i) => `=== ${i + 1}. ${v.title} ===\n\n${v.transcript}`)
     .join("\n\n\n");
 
   const slug = playlistTitle

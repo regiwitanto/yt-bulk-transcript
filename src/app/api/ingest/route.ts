@@ -16,7 +16,9 @@ export async function POST(request: NextRequest) {
 
   // Get authenticated user (null if not signed in)
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const userId = user?.id ?? null;
 
   // 1. Extract playlist ID from URL
@@ -34,6 +36,9 @@ export async function POST(request: NextRequest) {
   let playlistInfo;
   try {
     playlistInfo = await fetchPlaylistInfo(playlistId);
+    console.log(
+      `[ingest] Fetched ${playlistInfo.videos.length} videos for playlist ${playlistId}`,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
@@ -68,7 +73,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 4. Insert all videos as queued rows
+  // 4. Insert all videos as queued rows, in chunks of 100 (PostgREST limit guard)
   const videoRows = playlistInfo.videos.map((v) => ({
     playlist_id: playlist.id,
     yt_video_id: v.videoId,
@@ -77,15 +82,18 @@ export async function POST(request: NextRequest) {
     retry_count: 0,
   }));
 
-  const { error: videosError } = await supabaseAdmin
-    .from("videos")
-    .insert(videoRows);
-
-  if (videosError) {
-    return NextResponse.json(
-      { error: "Failed to save videos", detail: videosError.message },
-      { status: 500 },
-    );
+  const CHUNK_SIZE = 100;
+  for (let i = 0; i < videoRows.length; i += CHUNK_SIZE) {
+    const chunk = videoRows.slice(i, i + CHUNK_SIZE);
+    const { error: videosError } = await supabaseAdmin
+      .from("videos")
+      .insert(chunk);
+    if (videosError) {
+      return NextResponse.json(
+        { error: "Failed to save videos", detail: videosError.message },
+        { status: 500 },
+      );
+    }
   }
 
   return NextResponse.json({
