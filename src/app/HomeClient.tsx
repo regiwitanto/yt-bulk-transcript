@@ -63,6 +63,7 @@ export default function HomeClient({ userEmail }: Props) {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingSignOut, setPendingSignOut] = useState(false);
 
   // Single video result
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -189,19 +190,44 @@ export default function HomeClient({ userEmail }: Props) {
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {userEmail}
               </span>
-              <button
-                type="button"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                )}
-                onClick={async () => {
-                  if (!confirm("Sign out?")) return;
-                  await fetch("/api/auth/signout", { method: "POST" });
-                  window.location.href = "/login";
-                }}
-              >
-                Sign Out
-              </button>
+              {pendingSignOut ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Sign out?
+                  </span>
+                  <button
+                    type="button"
+                    className={cn(
+                      buttonVariants({ variant: "destructive", size: "sm" }),
+                    )}
+                    onClick={async () => {
+                      await fetch("/api/auth/signout", { method: "POST" });
+                      window.location.href = "/login";
+                    }}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                    )}
+                    onClick={() => setPendingSignOut(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                  )}
+                  onClick={() => setPendingSignOut(true)}
+                >
+                  Sign Out
+                </button>
+              )}
             </>
           ) : (
             <a

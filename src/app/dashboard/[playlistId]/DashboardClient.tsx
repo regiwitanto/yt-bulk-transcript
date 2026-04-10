@@ -45,6 +45,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     ).length;
     return alreadyDone === initialVideos.length && initialVideos.length > 0;
   });
+  const [started, setStarted] = useState(playlist.status === "pending");
   const [videoDurations, setVideoDurations] = useState<Record<string, number>>(
     {},
   );
@@ -148,14 +149,10 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     runningRef.current = false;
   }, [videos, updateVideoStatus, playlist.id]);
 
-  // Start the loop automatically on mount
+  // Start processing only when user triggers it (or on mount if already complete)
   useEffect(() => {
-    if (!isComplete) {
-      runLoop();
-    } else {
-      // All videos already done but playlist status may still say "processing" in DB
-      // (e.g. user logged out mid-run, came back after background processing finished).
-      // Ensure the DB is consistent.
+    if (isComplete) {
+      // All videos already done — ensure DB status is consistent
       fetch("/api/playlist-status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -164,6 +161,13 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (started && !isComplete) {
+      runLoop();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -177,7 +181,11 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             </p>
           )}
           <p className="text-sm text-muted-foreground">
-            {isComplete ? "Complete" : `Processing ${done} / ${total}`}
+            {isComplete
+              ? "Complete"
+              : started
+                ? `Processing ${done} / ${total}`
+                : `${done} / ${total} done — paused`}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -189,6 +197,11 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               }
             >
               Download (.txt)
+            </Button>
+          )}
+          {!isComplete && !started && (
+            <Button size="sm" onClick={() => setStarted(true)}>
+              Resume
             </Button>
           )}
           <button
