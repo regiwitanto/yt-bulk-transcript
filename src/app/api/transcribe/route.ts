@@ -38,6 +38,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Verify the video belongs to the session user — prevents IDOR.
+  // We look up the playlist owner via a subquery on playlists.
+  const { data: videoRow } = await supabaseAdmin
+    .from("videos")
+    .select("playlist_id")
+    .eq("id", id)
+    .single();
+  if (!videoRow) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const { data: playlistRow } = await supabaseAdmin
+    .from("playlists")
+    .select("user_id")
+    .eq("id", videoRow.playlist_id)
+    .single();
+  if (!playlistRow || playlistRow.user_id !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   // Mark as processing
   await supabaseAdmin
     .from("videos")

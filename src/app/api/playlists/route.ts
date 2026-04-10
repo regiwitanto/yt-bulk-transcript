@@ -31,6 +31,13 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "No ids provided" }, { status: 400 });
   }
 
+  if (ids.length > 500) {
+    return NextResponse.json(
+      { error: "Too many ids (max 500)" },
+      { status: 400 },
+    );
+  }
+
   // Only delete playlists that belong to this user
   const { error } = await supabaseAdmin
     .from("playlists")

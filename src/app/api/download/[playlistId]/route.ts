@@ -49,18 +49,12 @@ export async function GET(
     .map((v, i) => `=== ${i + 1}. ${v.title} ===\n\n${v.transcript}`)
     .join("\n\n\n");
 
-  const slug = playlist.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 50);
-  const channelSlug = playlist.channel_name
-    ? playlist.channel_name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 30) + "-"
-    : "";
+  const sanitize = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
+  const title = sanitize(playlist.title);
+  const channel = playlist.channel_name
+    ? sanitize(playlist.channel_name)
+    : null;
+  const prefix = channel ? `${channel} - ${title}` : title;
   const d = new Date(playlist.created_at);
   // Format in user's local timezone
   const localStr = d
@@ -69,7 +63,7 @@ export async function GET(
     .replace(/:/g, "-")
     .replace(/\//g, "-");
   const ts = localStr.slice(0, 19); // YYYY-MM-DD_HH-MM-SS
-  const filename = `${channelSlug}${slug}-${ts}.txt`;
+  const filename = `${prefix} - ${ts}.txt`;
 
   return new NextResponse(text, {
     headers: {

@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createClient } from "@/lib/supabase-server";
 import { extractPlaylistId, fetchPlaylistInfo } from "@/lib/playlist";
 
+const CHUNK_SIZE = 100;
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { url } = body as { url?: string };
@@ -12,6 +14,10 @@ export async function POST(request: NextRequest) {
       { error: "Missing required field: url" },
       { status: 400 },
     );
+  }
+
+  if (url.length > 2048) {
+    return NextResponse.json({ error: "URL is too long" }, { status: 400 });
   }
 
   // Get authenticated user — require sign-in
@@ -71,13 +77,17 @@ export async function POST(request: NextRequest) {
       .select("yt_video_id, position")
       .eq("playlist_id", existing.id);
 
-    const existingIds = new Set((existingVideos ?? []).map((v) => v.yt_video_id));
+    const existingIds = new Set(
+      (existingVideos ?? []).map((v) => v.yt_video_id),
+    );
     const maxPosition = (existingVideos ?? []).reduce(
       (max, v) => Math.max(max, v.position ?? 0),
       -1,
     );
 
-    const newVideos = playlistInfo.videos.filter((v) => !existingIds.has(v.videoId));
+    const newVideos = playlistInfo.videos.filter(
+      (v) => !existingIds.has(v.videoId),
+    );
 
     if (newVideos.length > 0) {
       const newRows = newVideos.map((v, i) => ({
@@ -89,9 +99,10 @@ export async function POST(request: NextRequest) {
         position: maxPosition + 1 + i,
       }));
 
-      const CHUNK_SIZE = 100;
       for (let i = 0; i < newRows.length; i += CHUNK_SIZE) {
-        await supabaseAdmin.from("videos").insert(newRows.slice(i, i + CHUNK_SIZE));
+        await supabaseAdmin
+          .from("videos")
+          .insert(newRows.slice(i, i + CHUNK_SIZE));
       }
 
       // Reset playlist status so the dashboard re-runs transcription
@@ -138,7 +149,6 @@ export async function POST(request: NextRequest) {
     position: i,
   }));
 
-  const CHUNK_SIZE = 100;
   for (let i = 0; i < videoRows.length; i += CHUNK_SIZE) {
     const chunk = videoRows.slice(i, i + CHUNK_SIZE);
     const { error: videosError } = await supabaseAdmin

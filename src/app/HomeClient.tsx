@@ -203,12 +203,12 @@ export default function HomeClient({ userEmail }: Props) {
         <div className="flex items-center gap-3">
           {userEmail ? (
             <>
-              <a
+              <Link
                 href="/history"
                 className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
               >
                 History
-              </a>
+              </Link>
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {userEmail}
               </span>
@@ -252,12 +252,12 @@ export default function HomeClient({ userEmail }: Props) {
               )}
             </>
           ) : (
-            <a
+            <Link
               href="/login"
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
               Sign In
-            </a>
+            </Link>
           )}
         </div>
       </header>
