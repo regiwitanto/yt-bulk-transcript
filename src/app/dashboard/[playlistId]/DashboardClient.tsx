@@ -1,0 +1,274 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Progress } from "@/components/ui/progress";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import type { Database } from "@/lib/database.types";
+
+const buttonVariantOutlineSm = cn(
+  buttonVariants({ variant: "outline", size: "sm" }),
+);
+
+type Playlist = Database["public"]["Tables"]["playlists"]["Row"];
+type Video = Database["public"]["Tables"]["videos"]["Row"];
+type VideoStatus = Video["status"];
+
+interface Props {
+  playlist: Playlist;
+  initialVideos: Video[];
+}
+
+const STATUS_BADGE: Record<
+  VideoStatus,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
+> = {
+  success: { label: "Success", variant: "default" },
+  processing: { label: "Processing…", variant: "secondary" },
+  queued: { label: "Queued", variant: "outline" },
+  no_transcript: { label: "No Transcript", variant: "destructive" },
+  error: { label: "Error", variant: "destructive" },
+};
+
+export default function DashboardClient({ playlist, initialVideos }: Props) {
+  const [videos, setVideos] = useState<Video[]>(initialVideos);
+  const runningRef = useRef(false);
+  const startTimeRef = useRef<number | null>(null);
+
+  const [dismissed, setDismissed] = useState(false);
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>(
+    {},
+  );
+  const [totalSeconds, setTotalSeconds] = useState<number | null>(null);
+
+  const done = videos.filter(
+    (v) => v.status === "success" || v.status === "no_transcript",
+  ).length;
+  const total = videos.length;
+  const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+  const isComplete = done === total && total > 0;
+
+  const updateVideoStatus = useCallback(
+    (
+      id: string,
+      status: VideoStatus,
+      transcript?: string,
+      durationMs?: number,
+    ) => {
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === id
+            ? { ...v, status, transcript: transcript ?? v.transcript }
+            : v,
+        ),
+      );
+      if (durationMs !== undefined) {
+        setVideoDurations((prev) => ({ ...prev, [id]: durationMs }));
+      }
+    },
+    [],
+  );
+
+  const runLoop = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    startTimeRef.current = Date.now();
+
+    await fetch("/api/playlist-status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: playlist.id, status: "processing" }),
+    });
+
+    const queue = videos.filter(
+      (v) => v.status === "queued" || v.status === "processing",
+    );
+
+    for (const video of queue) {
+      // Optimistic UI update
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === video.id ? { ...v, status: "processing" } : v,
+        ),
+      );
+
+      const t0 = Date.now();
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: video.id, ytVideoId: video.yt_video_id }),
+      });
+      const result = await res.json();
+      const elapsed = Date.now() - t0;
+      updateVideoStatus(
+        video.id,
+        result.status ?? "error",
+        result.transcript,
+        elapsed,
+      );
+    }
+
+    setTotalSeconds(
+      Math.round((Date.now() - (startTimeRef.current ?? Date.now())) / 1000),
+    );
+
+    await fetch("/api/playlist-status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: playlist.id, status: "completed" }),
+    });
+
+    runningRef.current = false;
+  }, [videos, updateVideoStatus, playlist.id]);
+
+  // Start the loop automatically on mount
+  useEffect(() => {
+    if (!isComplete) {
+      runLoop();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Header */}
+      <header className="border-b px-6 py-4 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-bold text-lg truncate">{playlist.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {isComplete ? "Complete" : `Processing ${done} / ${total}`}
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          {isComplete && dismissed && (
+            <Button
+              size="sm"
+              onClick={() => downloadCombined(videos, playlist.title)}
+            >
+              Download (.txt)
+            </Button>
+          )}
+          <button
+            onClick={() => {
+              window.location.href = "/";
+            }}
+            className={buttonVariantOutlineSm}
+          >
+            ← Home
+          </button>
+          <a
+            href="https://buymeacoffee.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariantOutlineSm}
+          >
+            ☕ Support
+          </a>
+        </div>
+      </header>
+
+      {/* Progress bar */}
+      <div className="px-6 pt-4">
+        <Progress value={progress} className="h-2" />
+        <p className="text-xs text-muted-foreground mt-1 text-right">
+          {progress}%
+        </p>
+      </div>
+
+      {/* Video list */}
+      <main className="flex-1 overflow-auto px-6 py-4">
+        <div className="rounded-lg border divide-y">
+          {videos.map((video) => {
+            const badge = STATUS_BADGE[video.status];
+            return (
+              <div key={video.id} className="flex items-center gap-3 px-4 py-3">
+                <span className="flex-1 text-sm truncate">{video.title}</span>
+                {videoDurations[video.id] !== undefined && (
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {(videoDurations[video.id] / 1000).toFixed(1)}s
+                  </span>
+                )}
+                <Badge variant={badge.variant}>{badge.label}</Badge>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+
+      {/* Completion export modal */}
+      {isComplete && !dismissed && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-background rounded-xl shadow-xl p-8 max-w-md w-full space-y-6 text-center relative">
+            <button
+              onClick={() => setDismissed(true)}
+              className="absolute top-3 right-4 text-muted-foreground hover:text-foreground text-xl leading-none"
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-bold">🎉 All done!</h2>
+            <p className="text-muted-foreground">
+              {done} of {total} videos processed
+              {totalSeconds !== null && (
+                <>
+                  {" "}
+                  in{" "}
+                  {totalSeconds >= 60
+                    ? `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`
+                    : `${totalSeconds}s`}
+                </>
+              )}
+              .
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={() => downloadCombined(videos, playlist.title)}
+                size="lg"
+              >
+                Download Transcripts (.txt)
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Finding this useful?{" "}
+              <a
+                href="https://buymeacoffee.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Buy Me a Coffee ☕
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function downloadCombined(videos: Video[], playlistTitle: string) {
+  const text = videos
+    .filter((v) => v.status === "success" && v.transcript)
+    .map((v) => `=== ${v.title} ===\n\n${v.transcript}`)
+    .join("\n\n\n");
+
+  const slug = playlistTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const filename = `${slug}-transcripts-${date}.txt`;
+
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
