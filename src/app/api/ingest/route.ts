@@ -14,12 +14,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Get authenticated user (null if not signed in)
+  // Get authenticated user — require sign-in
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const userId = user?.id ?? null;
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = user.id;
 
   // 1. Extract playlist ID from URL
   const playlistId = extractPlaylistId(url);
