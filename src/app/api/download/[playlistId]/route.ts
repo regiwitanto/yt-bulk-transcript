@@ -23,7 +23,7 @@ export async function GET(
     .select("title, transcript, status")
     .eq("playlist_id", playlistId)
     .eq("status", "success")
-    .order("created_at", { ascending: true });
+    .order("position", { ascending: true });
 
   if (!videos || videos.length === 0) {
     return NextResponse.json(

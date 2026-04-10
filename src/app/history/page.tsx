@@ -5,12 +5,19 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/database.types";
-import { DownloadButton } from "./DownloadButton";
+import HistoryClient from "./HistoryClient";
+import { SignOutButton } from "./SignOutButton";
 
 type PlaylistRow = Database["public"]["Tables"]["playlists"]["Row"];
 type Playlist = PlaylistRow & { video_count: number };
 
-export default async function HistoryPage() {
+const PAGE_SIZE = 10;
+
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,12 +27,19 @@ export default async function HistoryPage() {
     redirect("/login");
   }
 
-  // Fetch playlists with video counts
-  const { data: raw } = await supabaseAdmin
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data: raw, count: totalCount } = await supabaseAdmin
     .from("playlists")
-    .select("*, videos(count)")
+    .select("*, videos(count)", { count: "exact" })
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  const totalPages = Math.ceil((totalCount ?? 0) / PAGE_SIZE);
 
   const rows: Playlist[] = (raw ?? []).map((p) => {
     const { videos, ...rest } = p as PlaylistRow & {
@@ -33,18 +47,6 @@ export default async function HistoryPage() {
     };
     return { ...rest, video_count: videos?.[0]?.count ?? 0 };
   });
-
-  const STATUS_LABEL: Record<string, string> = {
-    pending: "Pending",
-    processing: "Processing",
-    completed: "Complete",
-  };
-
-  const STATUS_COLOR: Record<string, string> = {
-    pending: "text-muted-foreground",
-    processing: "text-blue-500",
-    completed: "text-green-600",
-  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -59,14 +61,7 @@ export default async function HistoryPage() {
           <span className="text-sm text-muted-foreground hidden sm:inline">
             {user.email}
           </span>
-          <form action="/api/auth/signout" method="POST">
-            <button
-              type="submit"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              Sign Out
-            </button>
-          </form>
+          <SignOutButton />
         </div>
       </header>
 
@@ -81,69 +76,13 @@ export default async function HistoryPage() {
           </Link>
         </div>
 
-        {rows.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <p className="text-lg">No transcripts yet.</p>
-            <p className="text-sm mt-1">
-              <Link href="/" className="underline hover:text-foreground">
-                Extract your first playlist
-              </Link>
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-lg border divide-y">
-            {rows.map((playlist) => (
-              <div
-                key={playlist.id}
-                className="flex items-center gap-3 px-4 py-4"
-              >
-                <a
-                  href={`/dashboard/${playlist.id}`}
-                  className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                >
-                  <p className="text-sm font-medium truncate">
-                    {playlist.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {playlist.channel_name && (
-                      <span className="mr-1">
-                        {playlist.channel_name} &middot;
-                      </span>
-                    )}
-                    {new Date(playlist.created_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    {" · "}
-                    {playlist.video_count} video
-                    {playlist.video_count !== 1 ? "s" : ""}
-                  </p>
-                </a>
-                <span
-                  className={cn(
-                    "text-xs font-medium shrink-0",
-                    STATUS_COLOR[playlist.status] ?? "text-muted-foreground",
-                  )}
-                >
-                  {STATUS_LABEL[playlist.status] ?? playlist.status}
-                </span>
-                {playlist.status === "completed" ? (
-                  <DownloadButton playlistId={playlist.id} />
-                ) : (
-                  <span
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "sm" }),
-                      "shrink-0 opacity-40 cursor-not-allowed pointer-events-none",
-                    )}
-                  >
-                    Download
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <HistoryClient
+          key={page}
+          initialRows={rows}
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount ?? 0}
+        />
       </main>
     </div>
   );

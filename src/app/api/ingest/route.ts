@@ -32,13 +32,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 2. Scrape playlist info (title + video list) from YouTube
+  // 2. Check if this user already has this playlist
+  const { data: existing } = await supabaseAdmin
+    .from("playlists")
+    .select("id, status")
+    .eq("user_id", userId ?? "")
+    .ilike("url", `%list=${playlistId}%`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // 3. Scrape playlist info (title + video list) from YouTube
   let playlistInfo;
   try {
     playlistInfo = await fetchPlaylistInfo(playlistId);
-    console.log(
-      `[ingest] Fetched ${playlistInfo.videos.length} videos for playlist ${playlistId}`,
-    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
@@ -54,7 +61,51 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 3. Insert playlist row
+  if (existing) {
+    // Diff against existing videos to find newly added ones
+    const { data: existingVideos } = await supabaseAdmin
+      .from("videos")
+      .select("yt_video_id, position")
+      .eq("playlist_id", existing.id);
+
+    const existingIds = new Set((existingVideos ?? []).map((v) => v.yt_video_id));
+    const maxPosition = (existingVideos ?? []).reduce(
+      (max, v) => Math.max(max, v.position ?? 0),
+      -1,
+    );
+
+    const newVideos = playlistInfo.videos.filter((v) => !existingIds.has(v.videoId));
+
+    if (newVideos.length > 0) {
+      const newRows = newVideos.map((v, i) => ({
+        playlist_id: existing.id,
+        yt_video_id: v.videoId,
+        title: v.title,
+        status: "queued" as const,
+        retry_count: 0,
+        position: maxPosition + 1 + i,
+      }));
+
+      const CHUNK_SIZE = 100;
+      for (let i = 0; i < newRows.length; i += CHUNK_SIZE) {
+        await supabaseAdmin.from("videos").insert(newRows.slice(i, i + CHUNK_SIZE));
+      }
+
+      // Reset playlist status so the dashboard re-runs transcription
+      await supabaseAdmin
+        .from("playlists")
+        .update({ status: "pending" })
+        .eq("id", existing.id);
+    }
+
+    return NextResponse.json({
+      playlistId: existing.id,
+      duplicate: true,
+      newVideos: newVideos.length,
+    });
+  }
+
+  // 4. Insert playlist row
   const { data: playlist, error: playlistError } = await supabaseAdmin
     .from("playlists")
     .insert({
@@ -74,13 +125,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 4. Insert all videos as queued rows, in chunks of 100 (PostgREST limit guard)
-  const videoRows = playlistInfo.videos.map((v) => ({
+  // 5. Insert all videos as queued rows, in chunks of 100 (PostgREST limit guard)
+  const videoRows = playlistInfo.videos.map((v, i) => ({
     playlist_id: playlist.id,
     yt_video_id: v.videoId,
     title: v.title,
     status: "queued" as const,
     retry_count: 0,
+    position: i,
   }));
 
   const CHUNK_SIZE = 100;

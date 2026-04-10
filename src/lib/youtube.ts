@@ -12,7 +12,13 @@ export interface TranscriptResult {
 export async function fetchTranscript(
   videoId: string,
 ): Promise<TranscriptResult> {
-  const segments = await YoutubeTranscript.fetchTranscript(videoId);
+  let segments;
+  try {
+    segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: "en" });
+  } catch {
+    // English not available — fall back to whatever the first track is
+    segments = await YoutubeTranscript.fetchTranscript(videoId);
+  }
   const text = segments.map((s) => s.text).join(" ");
   return { videoId, text };
 }

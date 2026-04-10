@@ -67,6 +67,14 @@ export default function HomeClient({ userEmail }: Props) {
   // Single video result
   const [transcript, setTranscript] = useState<string | null>(null);
   const [fetchDuration, setFetchDuration] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function copyTranscript() {
+    if (!transcript) return;
+    await navigator.clipboard.writeText(transcript);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   async function handleExtract(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +106,19 @@ export default function HomeClient({ userEmail }: Props) {
         const data = await res.json();
         if (!res.ok) {
           setError(data.error ?? "Something went wrong fetching the playlist.");
+          return;
+        }
+        if (data.duplicate) {
+          if (data.newVideos > 0) {
+            setError(
+              `${data.newVideos} new video${data.newVideos !== 1 ? "s" : ""} found and queued. Redirecting…`,
+            );
+            window.location.href = `/dashboard/${data.playlistId}`;
+          } else {
+            setError(
+              "You've already transcribed this playlist. View it in your history.",
+            );
+          }
           return;
         }
         window.location.href = `/dashboard/${data.playlistId}`;
@@ -169,10 +190,15 @@ export default function HomeClient({ userEmail }: Props) {
               </span>
               <form action="/api/auth/signout" method="POST">
                 <button
-                  type="submit"
+                  type="button"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
                   )}
+                  onClick={async () => {
+                    if (!confirm("Sign out?")) return;
+                    await fetch("/api/auth/signout", { method: "POST" });
+                    window.location.href = "/login";
+                  }}
                 >
                   Sign Out
                 </button>
@@ -208,16 +234,51 @@ export default function HomeClient({ userEmail }: Props) {
             YouTube URL
           </label>
           <div className="flex gap-2">
-            <Input
-              id="yt-url"
-              type="url"
-              placeholder="https://youtube.com/playlist?list=PL... or watch?v=..."
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="flex-1"
-              disabled={loading}
-              aria-describedby={error ? "yt-url-error" : undefined}
-            />
+            <div className="relative flex-1">
+              <Input
+                id="yt-url"
+                type="url"
+                placeholder="https://youtube.com/playlist?list=PL... or watch?v=..."
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setTranscript(null);
+                    setFetchDuration(null);
+                    setError("");
+                  }
+                }}
+                className="pr-8"
+                disabled={loading}
+                aria-describedby={error ? "yt-url-error" : undefined}
+              />
+              {url && !loading && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUrl("");
+                    setTranscript(null);
+                    setFetchDuration(null);
+                    setError("");
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Clear"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
             <Button
               type="submit"
               disabled={loading}
@@ -256,9 +317,22 @@ export default function HomeClient({ userEmail }: Props) {
               rows={10}
               className="w-full rounded-md border bg-muted px-3 py-2 text-sm font-mono resize-y"
             />
-            <Button variant="outline" onClick={downloadSingle}>
-              Download Transcript (.txt)
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={copyTranscript}
+                className="flex-1"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={downloadSingle}
+                className="flex-1"
+              >
+                Download (.txt)
+              </Button>
+            </div>
           </div>
         )}
 

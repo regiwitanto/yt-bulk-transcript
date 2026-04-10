@@ -39,7 +39,12 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   const runningRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
 
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    const alreadyDone = initialVideos.filter(
+      (v) => v.status === "success" || v.status === "no_transcript",
+    ).length;
+    return alreadyDone === initialVideos.length && initialVideos.length > 0;
+  });
   const [videoDurations, setVideoDurations] = useState<Record<string, number>>(
     {},
   );
@@ -88,19 +93,26 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
       (v) => v.status === "queued" || v.status === "processing",
     );
 
-    for (const video of queue) {
-      // Optimistic UI update
+    // Process up to CONCURRENCY videos simultaneously.
+    // Each worker pulls the next unstarted video from the queue until exhausted.
+    const CONCURRENCY = 5;
+    let qi = 0;
+
+    const processOne = async (video: Video) => {
       setVideos((prev) =>
         prev.map((v) =>
           v.id === video.id ? { ...v, status: "processing" } : v,
         ),
       );
-
       const t0 = Date.now();
       const res = await fetch("/api/transcribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: video.id, ytVideoId: video.yt_video_id }),
+        body: JSON.stringify({
+          id: video.id,
+          ytVideoId: video.yt_video_id,
+          retryCount: video.retry_count ?? 0,
+        }),
       });
       const result = await res.json();
       const elapsed = Date.now() - t0;
@@ -110,7 +122,18 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
         result.transcript,
         elapsed,
       );
-    }
+    };
+
+    const worker = async () => {
+      while (qi < queue.length) {
+        const video = queue[qi++]; // atomic read+increment before any await
+        await processOne(video);
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker),
+    );
 
     setTotalSeconds(
       Math.round((Date.now() - (startTimeRef.current ?? Date.now())) / 1000),
@@ -129,6 +152,15 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   useEffect(() => {
     if (!isComplete) {
       runLoop();
+    } else {
+      // All videos already done but playlist status may still say "processing" in DB
+      // (e.g. user logged out mid-run, came back after background processing finished).
+      // Ensure the DB is consistent.
+      fetch("/api/playlist-status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: playlist.id, status: "completed" }),
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -138,10 +170,12 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
       {/* Header */}
       <header className="border-b px-6 py-4 flex items-center justify-between gap-4">
         <div className="min-w-0">
-          {playlist.channel_name && (
-            <p className="text-xs text-muted-foreground">{playlist.channel_name}</p>
-          )}
           <h1 className="font-bold text-lg truncate">{playlist.title}</h1>
+          {playlist.channel_name && (
+            <p className="text-xs text-muted-foreground">
+              by {playlist.channel_name}
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">
             {isComplete ? "Complete" : `Processing ${done} / ${total}`}
           </p>
@@ -150,7 +184,9 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           {isComplete && dismissed && (
             <Button
               size="sm"
-              onClick={() => downloadCombined(videos, playlist.title, playlist.channel_name)}
+              onClick={() =>
+                downloadCombined(videos, playlist.title, playlist.channel_name)
+              }
             >
               Download (.txt)
             </Button>
@@ -224,7 +260,13 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             </p>
             <div className="flex flex-col gap-3">
               <Button
-                onClick={() => downloadCombined(videos, playlist.title, playlist.channel_name)}
+                onClick={() =>
+                  downloadCombined(
+                    videos,
+                    playlist.title,
+                    playlist.channel_name,
+                  )
+                }
                 size="lg"
               >
                 Download Transcripts (.txt)
@@ -248,7 +290,11 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   );
 }
 
-function downloadCombined(videos: Video[], playlistTitle: string, channelName: string | null) {
+function downloadCombined(
+  videos: Video[],
+  playlistTitle: string,
+  channelName: string | null,
+) {
   const successVideos = videos.filter(
     (v) => v.status === "success" && v.transcript,
   );
@@ -262,7 +308,11 @@ function downloadCombined(videos: Video[], playlistTitle: string, channelName: s
     .replace(/^-|-$/g, "")
     .slice(0, 50);
   const channelSlug = channelName
-    ? channelName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) + "-"
+    ? channelName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 30) + "-"
     : "";
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");

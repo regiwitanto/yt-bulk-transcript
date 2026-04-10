@@ -6,7 +6,15 @@ const MAX_RETRIES = 3;
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { id, ytVideoId } = body as { id?: string; ytVideoId?: string };
+  const {
+    id,
+    ytVideoId,
+    retryCount: clientRetryCount,
+  } = body as {
+    id?: string;
+    ytVideoId?: string;
+    retryCount?: number;
+  };
 
   if (!id || !ytVideoId) {
     return NextResponse.json(
@@ -37,14 +45,19 @@ export async function POST(request: NextRequest) {
       message.toLowerCase().includes("disabled") ||
       message.toLowerCase().includes("could not find");
 
-    // Fetch current retry count
-    const { data: video } = await supabaseAdmin
-      .from("videos")
-      .select("retry_count")
-      .eq("id", id)
-      .single();
-
-    const retryCount = (video?.retry_count ?? 0) + 1;
+    // Use retry count from client to avoid an extra SELECT round-trip.
+    // Fall back to a DB fetch only if not provided (e.g. direct API calls).
+    let retryCount: number;
+    if (clientRetryCount !== undefined) {
+      retryCount = clientRetryCount + 1;
+    } else {
+      const { data: video } = await supabaseAdmin
+        .from("videos")
+        .select("retry_count")
+        .eq("id", id)
+        .single();
+      retryCount = (video?.retry_count ?? 0) + 1;
+    }
 
     if (isNoTranscript) {
       await supabaseAdmin

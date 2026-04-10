@@ -61,6 +61,7 @@ export type Database = {
           transcript: string | null;
           status: VideoStatus;
           retry_count: number;
+          position: number;
           created_at: string;
         };
         Insert: {
@@ -71,6 +72,7 @@ export type Database = {
           transcript?: string | null;
           status?: VideoStatus;
           retry_count?: number;
+          position?: number;
           created_at?: string;
         };
         Update: {

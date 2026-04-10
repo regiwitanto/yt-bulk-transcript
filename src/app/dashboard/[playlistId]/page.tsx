@@ -21,7 +21,7 @@ export default async function DashboardPage({ params }: Props) {
     .from("videos")
     .select("*")
     .eq("playlist_id", playlistId)
-    .order("created_at", { ascending: true });
+    .order("position", { ascending: true });
 
   return <DashboardClient playlist={playlist} initialVideos={videos ?? []} />;
 }
