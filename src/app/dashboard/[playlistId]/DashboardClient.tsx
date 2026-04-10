@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -216,12 +217,12 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                 Resume
               </Button>
             )}
-            <a href="/history" className={buttonVariantOutlineSm}>
+            <Link href="/history" className={buttonVariantOutlineSm}>
               History
-            </a>
-            <a href="/" className={buttonVariantOutlineSm}>
+            </Link>
+            <Link href="/" className={buttonVariantOutlineSm}>
               ← Home
-            </a>
+            </Link>
           </div>
         </div>
         <div>
@@ -330,12 +331,12 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               >
                 Download Transcripts (.txt)
               </Button>
-              <a
+              <Link
                 href="/history"
-                className={buttonVariantOutlineSm + " text-center"}
+                className={cn(buttonVariantOutlineSm, "text-center")}
               >
                 View History
-              </a>
+              </Link>
             </div>
             <p className="text-sm text-muted-foreground">
               Finding this useful?{" "}

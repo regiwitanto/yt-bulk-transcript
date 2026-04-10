@@ -240,7 +240,7 @@ export default function HistoryClient({
                 <span className="text-xs text-muted-foreground w-5 shrink-0 text-right">
                   {rowNum}.
                 </span>
-                <a
+                <Link
                   href={`/dashboard/${playlist.id}`}
                   className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
                 >
@@ -263,7 +263,7 @@ export default function HistoryClient({
                     {playlist.video_count} video
                     {playlist.video_count !== 1 ? "s" : ""}
                   </p>
-                </a>
+                </Link>
                 <span
                   className={cn(
                     "text-xs font-medium shrink-0",

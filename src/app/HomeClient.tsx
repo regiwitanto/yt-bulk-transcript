@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { Fragment, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ interface Props {
 }
 
 export default function HomeClient({ userEmail }: Props) {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -115,7 +117,7 @@ export default function HomeClient({ userEmail }: Props) {
             setInfo(
               `${data.newVideos} new video${data.newVideos !== 1 ? "s" : ""} found and queued. Redirecting…`,
             );
-            window.location.href = `/dashboard/${data.playlistId}`;
+            router.push(`/dashboard/${data.playlistId}`);
           } else {
             setError(
               "You've already transcribed this playlist. View it in your history.",
@@ -123,7 +125,7 @@ export default function HomeClient({ userEmail }: Props) {
           }
           return;
         }
-        window.location.href = `/dashboard/${data.playlistId}`;
+        router.push(`/dashboard/${data.playlistId}`);
       } else {
         const t0 = Date.now();
         const res = await fetch("/api/single-transcript", {
