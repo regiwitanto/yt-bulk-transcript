@@ -38,6 +38,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   const [videos, setVideos] = useState<Video[]>(initialVideos);
   const runningRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [dismissed, setDismissed] = useState(() => {
     const alreadyDone = initialVideos.filter(
@@ -169,62 +170,70 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started]);
 
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="border-b px-6 py-4 flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="font-bold text-lg truncate">{playlist.title}</h1>
-          {playlist.channel_name && (
-            <p className="text-xs text-muted-foreground">
-              by {playlist.channel_name}
+      <header className="sticky top-0 z-30 bg-background border-b px-6 py-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="font-bold text-lg truncate">{playlist.title}</h1>
+            {playlist.channel_name && (
+              <p className="text-sm text-muted-foreground">
+                by {playlist.channel_name}
+              </p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              {isComplete
+                ? "Complete"
+                : started
+                  ? `Processing ${done} / ${total}`
+                  : `${done} / ${total} done — paused`}
             </p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {isComplete
-              ? "Complete"
-              : started
-                ? `Processing ${done} / ${total}`
-                : `${done} / ${total} done — paused`}
-          </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {isComplete && dismissed && (
+              <Button
+                size="sm"
+                onClick={() =>
+                  downloadCombined(
+                    videos,
+                    playlist.title,
+                    playlist.channel_name,
+                  )
+                }
+              >
+                Download (.txt)
+              </Button>
+            )}
+            {!isComplete && !started && (
+              <Button size="sm" onClick={() => setStarted(true)}>
+                Resume
+              </Button>
+            )}
+            <a href="/history" className={buttonVariantOutlineSm}>
+              History
+            </a>
+            <a href="/" className={buttonVariantOutlineSm}>
+              ← Home
+            </a>
+          </div>
         </div>
-        <div className="flex gap-2 shrink-0">
-          {isComplete && dismissed && (
-            <Button
-              size="sm"
-              onClick={() =>
-                downloadCombined(videos, playlist.title, playlist.channel_name)
-              }
-            >
-              Download (.txt)
-            </Button>
-          )}
-          {!isComplete && !started && (
-            <Button size="sm" onClick={() => setStarted(true)}>
-              Resume
-            </Button>
-          )}
-          <button
-            onClick={() => {
-              window.location.href = "/";
-            }}
-            className={buttonVariantOutlineSm}
-          >
-            ← Home
-          </button>
+        <div>
+          <Progress value={progress} className="h-2" />
+          <p className="text-xs text-muted-foreground mt-1 text-right">
+            {progress}%
+          </p>
         </div>
       </header>
 
-      {/* Progress bar */}
-      <div className="px-6 pt-4">
-        <Progress value={progress} className="h-2" />
-        <p className="text-xs text-muted-foreground mt-1 text-right">
-          {progress}%
-        </p>
-      </div>
-
       {/* Video list */}
-      <main className="flex-1 overflow-auto px-6 py-4">
+      <main className="flex-1 px-6 py-4">
         <div className="rounded-lg border divide-y">
           {videos.map((video, i) => {
             const badge = STATUS_BADGE[video.status];
@@ -246,6 +255,20 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
         </div>
       </main>
 
+      {/* Scroll-to-top button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className={cn(
+            buttonVariantOutlineSm,
+            "fixed bottom-6 left-1/2 -translate-x-1/2 z-40",
+          )}
+          aria-label="Back to top"
+        >
+          ↑ Top
+        </button>
+      )}
+
       {/* Completion export modal */}
       {isComplete && !dismissed && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -258,19 +281,42 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               ×
             </button>
             <h2 className="text-2xl font-bold">🎉 All done!</h2>
-            <p className="text-muted-foreground">
-              {done} of {total} videos processed
-              {totalSeconds !== null && (
-                <>
-                  {" "}
-                  in{" "}
-                  {totalSeconds >= 60
-                    ? `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`
-                    : `${totalSeconds}s`}
-                </>
-              )}
-              .
-            </p>
+            <div className="text-muted-foreground space-y-1">
+              {(() => {
+                const succeeded = videos.filter(
+                  (v) => v.status === "success",
+                ).length;
+                const noTranscript = videos.filter(
+                  (v) => v.status === "no_transcript",
+                ).length;
+                return (
+                  <>
+                    <p>
+                      <span className="text-foreground font-medium">
+                        {succeeded}
+                      </span>{" "}
+                      of {total} transcripts fetched
+                      {totalSeconds !== null && (
+                        <>
+                          {" "}
+                          in{" "}
+                          {totalSeconds >= 60
+                            ? `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`
+                            : `${totalSeconds}s`}
+                        </>
+                      )}
+                      .
+                    </p>
+                    {noTranscript > 0 && (
+                      <p className="text-sm">
+                        {noTranscript} video{noTranscript !== 1 ? "s" : ""} had
+                        no transcript available.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
             <div className="flex flex-col gap-3">
               <Button
                 onClick={() =>
@@ -284,6 +330,12 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               >
                 Download Transcripts (.txt)
               </Button>
+              <a
+                href="/history"
+                className={buttonVariantOutlineSm + " text-center"}
+              >
+                View History
+              </a>
             </div>
             <p className="text-sm text-muted-foreground">
               Finding this useful?{" "}
