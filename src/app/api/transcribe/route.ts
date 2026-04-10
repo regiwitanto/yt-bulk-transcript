@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { fetchTranscript } from "@/lib/youtube";
 
+export const maxDuration = 60;
+
 const MAX_RETRIES = 3;
 
 export async function POST(request: NextRequest) {

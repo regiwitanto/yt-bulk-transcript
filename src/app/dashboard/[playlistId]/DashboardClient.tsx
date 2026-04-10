@@ -384,22 +384,14 @@ function downloadCombined(
     .map((v, i) => `=== ${i + 1}. ${v.title} ===\n\n${v.transcript}`)
     .join("\n\n\n");
 
-  const slug = playlistTitle
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 50);
-  const channelSlug = channelName
-    ? channelName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 30) + "-"
-    : "";
+  const sanitize = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
+  const title = sanitize(playlistTitle);
+  const channel = channelName ? sanitize(channelName) : null;
+  const prefix = channel ? `${channel} - ${title}` : title;
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-  const filename = `${channelSlug}${slug}-${ts}.txt`;
+  const filename = `${prefix} - ${ts}.txt`;
 
   const blob = new Blob([text], { type: "text/plain" });
   const url = URL.createObjectURL(blob);

@@ -16,36 +16,31 @@ export async function fetchTranscript(
   videoId: string,
 ): Promise<TranscriptResult> {
   async function fetchWithFallback(): Promise<string> {
-    let segments;
+    // Try "en" first. If that exact code isn't found, the error message
+    // lists all available codes — we pick the best English variant from
+    // that same error (no extra network round-trip to YouTube).
     try {
-      // Prefer English — works for most English videos in one round-trip.
-      segments = await YoutubeTranscript.fetchTranscript(videoId, {
+      const segments = await YoutubeTranscript.fetchTranscript(videoId, {
         lang: "en",
       });
+      return segments.map((s) => s.text).join(" ");
     } catch (err) {
       if (!(err instanceof YoutubeTranscriptNotAvailableLanguageError)) {
-        // Propagate immediately — no transcript, rate-limited, unavailable, etc.
         throw err;
       }
-      // "en" track not found by exact code. The error message contains the full
-      // list of available language codes, e.g. "Available languages: ar, en-US, fr".
-      // Find any en-* variant (en-US, en-GB, en-AU…) before giving up on English.
+      // Parse available languages out of the error message and pick the
+      // best English variant (en-US, en-GB, …) or fall back to tracks[0].
       const msg = (err as Error).message;
       const langsMatch = msg.match(/Available languages: (.+)$/);
       const availableLangs = langsMatch?.[1]?.split(", ") ?? [];
-      const enVariant = availableLangs.find((l) => l.startsWith("en"));
-      if (enVariant) {
-        // e.g. "en-US" is at position 4 in a list where Arabic is position 0 —
-        // find() picks it regardless of order.
-        segments = await YoutubeTranscript.fetchTranscript(videoId, {
-          lang: enVariant,
-        });
-      } else {
-        // No English track at all — fall back to tracks[0] (primary language).
-        segments = await YoutubeTranscript.fetchTranscript(videoId);
-      }
+      const lang = availableLangs.find((l) => l.startsWith("en"));
+      // lang=undefined → library picks tracks[0] (primary language)
+      const segments = await YoutubeTranscript.fetchTranscript(
+        videoId,
+        lang ? { lang } : undefined,
+      );
+      return segments.map((s) => s.text).join(" ");
     }
-    return segments.map((s) => s.text).join(" ");
   }
 
   const text = await Promise.race([

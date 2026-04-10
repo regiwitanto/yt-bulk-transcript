@@ -161,16 +161,12 @@ export default function HomeClient({ userEmail }: Props) {
     const a = document.createElement("a");
     a.href = blobUrl;
 
-    const slugify = (s: string, max: number) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, max);
+    // Strip characters invalid in filenames on Windows/macOS/Linux: \ / : * ? " < > |
+    const sanitize = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
 
-    const channelSlug = videoChannel ? slugify(videoChannel, 30) + "-" : "";
-    const titleSlug = videoTitle
-      ? slugify(videoTitle, 50)
+    const channel = videoChannel ? sanitize(videoChannel) : null;
+    const title = videoTitle
+      ? sanitize(videoTitle)
       : (() => {
           try {
             const parsed = new URL(url);
@@ -188,7 +184,8 @@ export default function HomeClient({ userEmail }: Props) {
     const pad = (n: number) => String(n).padStart(2, "0");
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
 
-    a.download = `${channelSlug}${titleSlug}-${ts}.txt`;
+    const prefix = channel ? `${channel} - ${title}` : title;
+    a.download = `${prefix} - ${ts}.txt`;
     a.click();
     URL.revokeObjectURL(blobUrl);
   }
