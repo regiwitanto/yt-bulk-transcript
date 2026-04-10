@@ -40,6 +40,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   const runningRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const [dismissed, setDismissed] = useState(() => {
     const alreadyDone = initialVideos.filter(
@@ -220,15 +221,15 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             {isComplete && dismissed && (
               <Button
                 size="sm"
-                onClick={() =>
-                  downloadCombined(
-                    videos,
-                    playlist.title,
-                    playlist.channel_name,
-                  )
-                }
+                disabled={downloading}
+                onClick={() => {
+                  setDownloading(true);
+                  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                  window.location.href = `/api/download/${playlist.id}?tz=${encodeURIComponent(tz)}`;
+                  setTimeout(() => setDownloading(false), 5000);
+                }}
               >
-                Download (.txt)
+                {downloading ? "Preparing…" : "Download (.txt)"}
               </Button>
             )}
             {!isComplete && !started && (
@@ -339,16 +340,16 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             </div>
             <div className="flex flex-col gap-3">
               <Button
-                onClick={() =>
-                  downloadCombined(
-                    videos,
-                    playlist.title,
-                    playlist.channel_name,
-                  )
-                }
+                disabled={downloading}
+                onClick={() => {
+                  setDownloading(true);
+                  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                  window.location.href = `/api/download/${playlist.id}?tz=${encodeURIComponent(tz)}`;
+                  setTimeout(() => setDownloading(false), 5000);
+                }}
                 size="lg"
               >
-                Download Transcripts (.txt)
+                {downloading ? "Preparing…" : "Download Transcripts (.txt)"}
               </Button>
               <Link
                 href="/history"
@@ -373,34 +374,4 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
       )}
     </div>
   );
-}
-
-function downloadCombined(
-  videos: Video[],
-  playlistTitle: string,
-  channelName: string | null,
-) {
-  const successVideos = videos.filter(
-    (v) => v.status === "success" && v.transcript,
-  );
-  const text = successVideos
-    .map((v, i) => `=== ${i + 1}. ${v.title} ===\n\n${v.transcript}`)
-    .join("\n\n\n");
-
-  const sanitize = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
-  const title = sanitize(playlistTitle);
-  const channel = channelName ? sanitize(channelName) : null;
-  const prefix = channel ? `${channel} - ${title}` : title;
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-  const filename = `${prefix} - ${ts}.txt`;
-
-  const blob = new Blob([text], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }

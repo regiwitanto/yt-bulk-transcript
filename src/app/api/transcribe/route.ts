@@ -16,14 +16,10 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  // getSession() validates the JWT locally from the cookie — no Supabase
-  // network round-trip. Safe here because ownership was already verified
-  // server-side when the dashboard page loaded. For a 50-video playlist
-  // this saves 50 sequential auth HTTP requests.
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
     .select("user_id")
     .eq("id", videoRow.playlist_id)
     .single();
-  if (!playlistRow || playlistRow.user_id !== session.user.id) {
+  if (!playlistRow || playlistRow.user_id !== user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

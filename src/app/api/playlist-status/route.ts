@@ -7,12 +7,10 @@ type PlaylistStatus = (typeof ALLOWED_STATUSES)[number];
 
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient();
-  // getSession() validates the JWT locally from the cookie — no network RTT.
-  // Ownership is enforced by the .eq("user_id") filter on the update below.
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -40,7 +38,7 @@ export async function PATCH(request: NextRequest) {
     .from("playlists")
     .update({ status: status as PlaylistStatus })
     .eq("id", id)
-    .eq("user_id", session.user.id);
+    .eq("user_id", user.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
