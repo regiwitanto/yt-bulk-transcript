@@ -77,8 +77,8 @@ export default async function HistoryPage({
           <span className="text-sm text-muted-foreground hidden sm:inline">
             {user.email}
           </span>
-          <ThemeToggle />
           <SignOutButton />
+          <ThemeToggle />
         </div>
       </header>
 

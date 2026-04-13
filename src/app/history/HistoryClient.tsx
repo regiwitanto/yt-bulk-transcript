@@ -140,8 +140,10 @@ export default function HistoryClient({
             </span>
             {pendingDelete ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Are you sure?
+                <span className="text-sm font-medium text-foreground">
+                  {crossPageAll
+                    ? `Delete all ${totalCount} playlists?`
+                    : `Delete ${selected.size} playlist${selected.size !== 1 ? "s" : ""}?`}
                 </span>
                 <Button
                   variant="destructive"
