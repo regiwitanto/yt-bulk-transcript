@@ -51,7 +51,7 @@ export default async function HistoryPage({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="border-b px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-background border-b px-6 py-4 flex items-center justify-between">
         <Link
           href="/"
           className="font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"

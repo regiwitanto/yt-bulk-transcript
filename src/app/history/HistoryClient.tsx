@@ -120,7 +120,7 @@ export default function HistoryClient({
     <>
       {/* Bulk action bar */}
       {(selected.size > 0 || crossPageAll) && (
-        <div className="flex flex-col gap-2 mb-3 sticky top-0 z-20 bg-background py-2 -mx-1 px-1 border-b">
+        <div className="flex flex-col gap-2 mb-3 sticky top-[61px] z-20 bg-background py-2 -mx-1 px-1 border-b">
           <div className="flex items-center justify-between px-1">
             <span className="text-sm text-muted-foreground">
               {crossPageAll

@@ -6,6 +6,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { signInWithGoogle } from "./actions";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -19,19 +20,29 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const errorMessage = error ? (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.") : null;
+  const errorMessage = error
+    ? (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.")
+    : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center space-y-1">
-          <CardTitle className="text-2xl">Sign in to continue</CardTitle>
-          <CardDescription>
-            Playlist extraction requires an account. You'll also get a history
-            of all your transcripts.
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 px-4 gap-6">
+      {/* App identity */}
+      <Link
+        href="/"
+        className="font-bold text-xl tracking-tight hover:opacity-80 transition-opacity"
+      >
+        YouTube Bulk Transcript
+      </Link>
+
+      <Card className="w-full max-w-sm shadow-md">
+        <CardHeader className="text-center space-y-1 pb-4">
+          <CardTitle className="text-xl">Sign in to continue</CardTitle>
+          <CardDescription className="text-sm leading-relaxed">
+            Create a free account to extract full playlists and access your
+            transcript history.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-3 pt-0">
           {errorMessage && (
             <p
               role="alert"
@@ -43,7 +54,7 @@ export default async function LoginPage({
           <form action={signInWithGoogle}>
             <Button type="submit" className="w-full" size="lg">
               <svg
-                className="mr-2 h-4 w-4"
+                className="mr-2 h-4 w-4 shrink-0"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
               >
@@ -67,8 +78,18 @@ export default async function LoginPage({
               Continue with Google
             </Button>
           </form>
+          <p className="text-xs text-center text-muted-foreground">
+            Single video transcripts work without an account.
+          </p>
         </CardContent>
       </Card>
+
+      <Link
+        href="/"
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        ← Back to home
+      </Link>
     </div>
   );
 }
