@@ -49,6 +49,21 @@ export default async function HistoryPage({
     return { ...rest, video_count: videos?.[0]?.count ?? 0 };
   });
 
+  // For each playlist on this page, count how many videos have status='success'.
+  // This tells us whether the Download button should be enabled.
+  const playlistIds = rows.map((r) => r.id);
+  const succeededMap: Record<string, number> = {};
+  if (playlistIds.length > 0) {
+    const { data: succeededRows } = await supabaseAdmin
+      .from("videos")
+      .select("playlist_id")
+      .in("playlist_id", playlistIds)
+      .eq("status", "success");
+    for (const row of succeededRows ?? []) {
+      succeededMap[row.playlist_id] = (succeededMap[row.playlist_id] ?? 0) + 1;
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="sticky top-0 z-30 bg-background border-b px-6 py-4 flex items-center justify-between">
@@ -84,6 +99,7 @@ export default async function HistoryPage({
           page={page}
           totalPages={totalPages}
           totalCount={totalCount ?? 0}
+          succeededMap={succeededMap}
         />
       </main>
     </div>

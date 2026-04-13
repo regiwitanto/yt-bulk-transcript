@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -30,6 +30,7 @@ interface Props {
   page: number;
   totalPages: number;
   totalCount: number;
+  succeededMap: Record<string, number>;
 }
 
 export default function HistoryClient({
@@ -37,6 +38,7 @@ export default function HistoryClient({
   page,
   totalPages,
   totalCount,
+  succeededMap,
 }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<Playlist[]>(initialRows);
@@ -47,8 +49,17 @@ export default function HistoryClient({
   const [deleteError, setDeleteError] = useState("");
 
   const allPageSelected = rows.length > 0 && selected.size === rows.length;
+  const someSelected = selected.size > 0 && !allPageSelected;
   const showCrossPageBanner =
     allPageSelected && totalPages > 1 && !crossPageAll;
+
+  // Set the native indeterminate state so the checkbox shows ☐ partway (not just checked/unchecked).
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
 
   function toggleAll() {
     if (allPageSelected) {
@@ -190,9 +201,32 @@ export default function HistoryClient({
       )}
 
       {deleteError && (
-        <p className="text-sm text-destructive mb-3" role="alert">
-          {deleteError}
-        </p>
+        <div
+          className="flex items-center justify-between gap-2 text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2 mb-3"
+          role="alert"
+        >
+          <span>{deleteError}</span>
+          <button
+            type="button"
+            onClick={() => setDeleteError("")}
+            className="shrink-0 hover:opacity-70 transition-opacity"
+            aria-label="Dismiss error"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
       )}
 
       {rows.length === 0 ? (
@@ -218,13 +252,20 @@ export default function HistoryClient({
           {/* Select-all header row */}
           <div className="flex items-center gap-3 px-4 py-2 bg-muted/30">
             <input
+              ref={selectAllRef}
               type="checkbox"
               checked={allPageSelected}
               onChange={toggleAll}
               className="h-4 w-4 cursor-pointer"
-              aria-label="Select all"
+              aria-label="Select all on this page"
             />
-            <span className="text-xs text-muted-foreground">Select all</span>
+            <span className="text-xs text-muted-foreground">
+              {allPageSelected
+                ? `All ${rows.length} on this page selected`
+                : selected.size > 0
+                  ? `${selected.size} of ${rows.length} selected on this page`
+                  : "Select all on this page"}
+            </span>
           </div>
 
           {rows.map((playlist, i) => {
@@ -233,10 +274,10 @@ export default function HistoryClient({
               <div
                 key={playlist.id}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-4 transition-colors",
+                  "flex items-center gap-3 px-4 py-4 transition-colors border-l-2",
                   selected.has(playlist.id)
-                    ? "bg-muted/60"
-                    : "hover:bg-muted/50",
+                    ? "border-l-primary bg-muted/80"
+                    : "border-l-transparent hover:bg-muted/50",
                 )}
               >
                 <input
@@ -281,7 +322,8 @@ export default function HistoryClient({
                 >
                   {STATUS_LABEL[playlist.status] ?? playlist.status}
                 </span>
-                {playlist.status === "completed" ? (
+                {playlist.status === "completed" &&
+                (succeededMap[playlist.id] ?? 0) > 0 ? (
                   <DownloadButton playlistId={playlist.id} />
                 ) : (
                   <span

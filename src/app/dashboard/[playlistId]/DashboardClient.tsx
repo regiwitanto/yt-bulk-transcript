@@ -27,14 +27,30 @@ const STATUS_BADGE: Record<
   {
     label: string;
     variant: "default" | "secondary" | "destructive" | "outline";
+    className?: string;
     spinning?: boolean;
   }
 > = {
-  success: { label: "Success", variant: "default" },
+  success: {
+    label: "Done",
+    variant: "outline",
+    className:
+      "border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30",
+  },
   processing: { label: "Processing…", variant: "secondary", spinning: true },
   queued: { label: "Queued", variant: "outline" },
-  no_transcript: { label: "No Transcript", variant: "outline" },
+  no_transcript: {
+    label: "No transcript",
+    variant: "outline",
+    className: "text-muted-foreground",
+  },
   error: { label: "Error", variant: "destructive" },
+};
+
+/** Subtle row background tint so users can scan status at a glance. */
+const ROW_BG: Partial<Record<VideoStatus, string>> = {
+  success: "bg-green-50/60 dark:bg-green-950/10",
+  error: "bg-destructive/5",
 };
 
 export default function DashboardClient({ playlist, initialVideos }: Props) {
@@ -71,6 +87,8 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   const total = videos.length;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
   const isComplete = done === total && total > 0;
+  const errorCount = videos.filter((v) => v.status === "error").length;
+  const succeededCount = videos.filter((v) => v.status === "success").length;
 
   const updateVideoStatus = useCallback(
     (
@@ -276,13 +294,13 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                 {isComplete
                   ? "Complete"
                   : started
-                    ? `Processing ${done} / ${total}`
-                    : `${done} / ${total} done — paused`}
+                    ? `Processing ${done} / ${total}${errorCount > 0 ? ` · ${errorCount} error${errorCount !== 1 ? "s" : ""}` : ""}`
+                    : `${done} / ${total} done — paused${errorCount > 0 ? ` · ${errorCount} error${errorCount !== 1 ? "s" : ""}` : ""}`}
               </span>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            {isComplete && dismissed && (
+            {isComplete && dismissed && succeededCount > 0 && (
               <Button
                 size="sm"
                 disabled={downloading}
@@ -324,56 +342,70 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             {progress}%
           </span>
         </div>
+        {/* Show download errors here after the modal is dismissed */}
+        {downloadError && dismissed && (
+          <p role="alert" className="text-xs text-destructive -mt-1">
+            {downloadError}
+          </p>
+        )}
       </header>
 
       {/* Video list */}
       <main className="flex-1 px-6 py-4">
-        <div className="rounded-lg border divide-y">
-          {videos.map((video, i) => {
-            const badge = STATUS_BADGE[video.status];
-            return (
-              <div key={video.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-xs text-muted-foreground w-8 shrink-0 text-right">
-                  {i + 1}.
-                </span>
-                <span className="flex-1 text-sm truncate">{video.title}</span>
-                {videoDurations[video.id] !== undefined && (
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {(videoDurations[video.id] / 1000).toFixed(1)}s
-                  </span>
-                )}
-                <Badge
-                  variant={badge.variant}
-                  className="flex items-center gap-1"
-                >
-                  {badge.spinning && (
-                    <svg
-                      className="animate-spin h-3 w-3 shrink-0"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
+        <div className="max-w-5xl mx-auto w-full">
+          <div className="rounded-lg border divide-y">
+            {videos.map((video, i) => {
+              const badge = STATUS_BADGE[video.status];
+              return (
+                <div
+                  key={video.id}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 transition-colors",
+                    ROW_BG[video.status],
                   )}
-                  {badge.label}
-                </Badge>
-              </div>
-            );
-          })}
+                >
+                  <span className="text-xs text-muted-foreground w-8 shrink-0 text-right">
+                    {i + 1}.
+                  </span>
+                  <span className="flex-1 text-sm truncate">{video.title}</span>
+                  {videoDurations[video.id] !== undefined && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {(videoDurations[video.id] / 1000).toFixed(1)}s
+                    </span>
+                  )}
+                  <Badge
+                    variant={badge.variant}
+                    className={cn("flex items-center gap-1", badge.className)}
+                  >
+                    {badge.spinning && (
+                      <svg
+                        className="animate-spin h-3 w-3 shrink-0"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                    )}
+                    {badge.label}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </main>
 
@@ -383,11 +415,24 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className={cn(
             buttonVariantOutlineSm,
-            "fixed bottom-6 left-1/2 -translate-x-1/2 z-40",
+            "fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1",
           )}
           aria-label="Back to top"
         >
-          ↑ Top
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-3.5 w-3.5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Top
         </button>
       )}
 
@@ -419,6 +464,24 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                 />
               </svg>
             </button>
+            {/* Celebration icon */}
+            <div className="flex justify-center">
+              <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-7 w-7 text-green-600 dark:text-green-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+            </div>
             <h2 id="done-title" className="text-2xl font-bold">
               All done!
             </h2>
@@ -459,21 +522,35 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               })()}
             </div>
             <div className="flex flex-col gap-2">
-              <Button
-                disabled={downloading}
-                onClick={downloadTranscripts}
-                size="lg"
-              >
-                {downloading ? "Preparing…" : "Download Transcripts (.txt)"}
-              </Button>
-              {downloadError && (
-                <p role="alert" className="text-sm text-destructive">
-                  {downloadError}
+              {succeededCount > 0 ? (
+                <>
+                  <Button
+                    disabled={downloading}
+                    onClick={downloadTranscripts}
+                    size="lg"
+                  >
+                    {downloading ? "Preparing…" : "Download Transcripts (.txt)"}
+                  </Button>
+                  {downloadError && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {downloadError}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-1">
+                  No transcripts were available to download.
                 </p>
               )}
               <Link
                 href="/history"
-                className={cn(buttonVariantOutlineSm, "text-center")}
+                className={cn(
+                  buttonVariants({
+                    variant: succeededCount > 0 ? "outline" : "default",
+                    size: "lg",
+                  }),
+                  "text-center",
+                )}
               >
                 View History
               </Link>
