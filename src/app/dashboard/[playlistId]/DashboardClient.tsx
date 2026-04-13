@@ -32,7 +32,7 @@ const STATUS_BADGE: Record<
   success: { label: "Success", variant: "default" },
   processing: { label: "Processing…", variant: "secondary", spinning: true },
   queued: { label: "Queued", variant: "outline" },
-  no_transcript: { label: "No Transcript", variant: "destructive" },
+  no_transcript: { label: "No Transcript", variant: "outline" },
   error: { label: "Error", variant: "destructive" },
 };
 

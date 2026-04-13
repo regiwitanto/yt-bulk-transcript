@@ -169,14 +169,18 @@ export async function fetchPlaylistInfo(
   let { videos, continuationToken } =
     extractVideosFromContents(initialContents);
   allVideos.push(...videos);
-  console.log(
-    `[playlist] Initial page: ${videos.length} videos, continuationToken: ${continuationToken ? continuationToken.slice(0, 40) + "…" : "none"}`,
-  );
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[playlist] Initial page: ${videos.length} videos, continuationToken: ${continuationToken ? continuationToken.slice(0, 40) + "…" : "none"}`,
+    );
+  }
 
   // Follow continuation tokens to get videos beyond the first ~100
   let page = 2;
   while (continuationToken) {
-    console.log(`[playlist] Fetching page ${page} with continuation token…`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[playlist] Fetching page ${page} with continuation token…`);
+    }
     const contResponse = await fetch(`${YT_BROWSE_URL}?key=${apiKey}`, {
       method: "POST",
       headers: {
@@ -201,9 +205,11 @@ export async function fetchPlaylistInfo(
     });
 
     if (!contResponse.ok) {
-      console.log(
-        `[playlist] Continuation request failed: HTTP ${contResponse.status}`,
-      );
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          `[playlist] Continuation request failed: HTTP ${contResponse.status}`,
+        );
+      }
       break;
     }
 
@@ -214,21 +220,27 @@ export async function fetchPlaylistInfo(
       contData?.onResponseReceivedActions?.[0]?.appendContinuationItemsAction
         ?.continuationItems ?? [];
 
-    console.log(
-      `[playlist] Page ${page}: contContents.length=${contContents.length}`,
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[playlist] Page ${page}: contContents.length=${contContents.length}`,
+      );
+    }
     if (contContents.length === 0) break;
 
     const result = extractVideosFromContents(contContents);
-    console.log(
-      `[playlist] Page ${page}: ${result.videos.length} more videos, next token: ${result.continuationToken ? "yes" : "none"}`,
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[playlist] Page ${page}: ${result.videos.length} more videos, next token: ${result.continuationToken ? "yes" : "none"}`,
+      );
+    }
     allVideos.push(...result.videos);
     continuationToken = result.continuationToken;
     page++;
   }
 
-  console.log(`[playlist] Total videos fetched: ${allVideos.length}`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[playlist] Total videos fetched: ${allVideos.length}`);
+  }
 
   return { title: playlistTitle, channelName, videos: allVideos };
 }

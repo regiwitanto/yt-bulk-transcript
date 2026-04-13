@@ -8,11 +8,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "./actions";
 
-export default function LoginPage({
+const ERROR_MESSAGES: Record<string, string> = {
+  auth_failed: "Sign-in failed. Please try again.",
+  missing_code: "Sign-in was cancelled or timed out. Please try again.",
+};
+
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const { error } = await searchParams;
+  const errorMessage = error ? (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.") : null;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-sm">
@@ -24,6 +32,14 @@ export default function LoginPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {errorMessage && (
+            <p
+              role="alert"
+              className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2 text-center"
+            >
+              {errorMessage}
+            </p>
+          )}
           <form action={signInWithGoogle}>
             <Button type="submit" className="w-full" size="lg">
               <svg

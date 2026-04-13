@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -66,6 +66,7 @@ export default function HomeClient({ userEmail }: Props) {
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   // Single video result
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -94,6 +95,7 @@ export default function HomeClient({ userEmail }: Props) {
     e.preventDefault();
     setError("");
     setInfo("");
+    setNeedsLogin(false);
     setTranscript(null);
     setVideoTitle(null);
     setVideoChannel(null);
@@ -116,7 +118,7 @@ export default function HomeClient({ userEmail }: Props) {
     try {
       if (type === "playlist") {
         if (!userEmail) {
-          setError("__playlist_login__");
+          setNeedsLogin(true);
           setLoading(false);
           return;
         }
@@ -281,6 +283,7 @@ export default function HomeClient({ userEmail }: Props) {
                       setTranscript(null);
                       setFetchDuration(null);
                       setError("");
+                      setNeedsLogin(false);
                     }
                   }}
                   className="pr-8"
@@ -328,13 +331,13 @@ export default function HomeClient({ userEmail }: Props) {
                 )}
               </Button>
             </div>
-            {error && (
+            {(error || needsLogin) && (
               <p
                 id="yt-url-error"
                 className="text-sm text-destructive text-left"
                 role="alert"
               >
-                {error === "__playlist_login__" ? (
+                {needsLogin ? (
                   <>
                     Playlist extraction requires an account.{" "}
                     <Link href="/login" className="underline hover:opacity-80">

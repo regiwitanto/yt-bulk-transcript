@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchTranscript } from "@/lib/youtube";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (
+    !checkRateLimit(`single-transcript:${ip}`, { limit: 20, windowMs: 60_000 })
+  ) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a minute and try again." },
+      { status: 429 },
+    );
+  }
+
   const body = await request.json();
   const { videoUrl } = body as { videoUrl?: string };
 
