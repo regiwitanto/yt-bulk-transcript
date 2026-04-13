@@ -495,7 +495,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           aria-modal="true"
           aria-labelledby="done-title"
         >
-          <div className="bg-background rounded-xl shadow-xl p-6 max-w-md w-full space-y-6 text-center relative">
+          <div className="bg-background border border-border rounded-xl shadow-xl p-6 max-w-md w-full space-y-6 text-center relative">
             <button
               onClick={() => setDismissed(true)}
               className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

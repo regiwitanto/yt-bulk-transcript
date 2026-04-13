@@ -11,7 +11,16 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const STEPS = [
   { title: "Paste any YouTube URL", desc: "Playlist or single video" },
   { title: "We detect & fetch", desc: "Auto-detects what you pasted" },
-  { title: "Download as .txt", desc: "One clean file, ready to use" },
+  { title: "Download as .txt or .json", desc: "One clean file, ready to use" },
+];
+
+const USE_CASES = [
+  { icon: "🎓", title: "Students", desc: "Save lecture notes without rewatching hours of video" },
+  { icon: "📝", title: "Content Creators", desc: "Repurpose videos into blogs, newsletters, and threads" },
+  { icon: "🤖", title: "AI & LLM", desc: "Build structured JSON datasets ready for AI ingestion" },
+  { icon: "🎧", title: "Podcasters", desc: "Read and search episode transcripts instantly" },
+  { icon: "🌍", title: "Language Learners", desc: "Study real speech patterns from authentic content" },
+  { icon: "📊", title: "Researchers", desc: "Analyze and compare content across entire channels" },
 ];
 
 // Examples shown to new users — single video for guests (no login needed),
@@ -192,18 +201,12 @@ export default function HomeClient({ userEmail }: Props) {
     }
   }
 
-  function downloadSingle() {
+  function downloadSingle(format: "txt" | "json") {
     if (!transcript) return;
-    const blob = new Blob([transcript], { type: "text/plain" });
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
 
-    // Strip characters invalid in filenames on Windows/macOS/Linux: \ / : * ? " < > |
     const sanitize = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
-
     const channel = videoChannel ? sanitize(videoChannel) : null;
-    const title = videoTitle
+    const safeTitle = videoTitle
       ? sanitize(videoTitle)
       : (() => {
           try {
@@ -221,9 +224,34 @@ export default function HomeClient({ userEmail }: Props) {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+    const prefix = channel ? `${channel} - ${safeTitle}` : safeTitle;
 
-    const prefix = channel ? `${channel} - ${title}` : title;
-    a.download = `${prefix} - ${ts}.txt`;
+    let content: string;
+    let mime: string;
+    if (format === "json") {
+      const payload = {
+        video: {
+          title: videoTitle ?? null,
+          channel: videoChannel ?? null,
+          url: videoId
+            ? `https://www.youtube.com/watch?v=${videoId}`
+            : url,
+          exported_at: new Date().toISOString(),
+        },
+        transcript,
+      };
+      content = JSON.stringify(payload, null, 2);
+      mime = "application/json";
+    } else {
+      content = transcript;
+      mime = "text/plain";
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `${prefix} - ${ts}.${format}`;
     a.click();
     URL.revokeObjectURL(blobUrl);
   }
@@ -364,11 +392,11 @@ export default function HomeClient({ userEmail }: Props) {
             {!url && !loading && (
               <button
                 type="button"
-                onClick={() =>
-                  setUrl(
-                    userEmail ? EXAMPLE_PLAYLIST_URL : EXAMPLE_VIDEO_URL,
-                  )
-                }
+                onClick={() => {
+                  setUrl(userEmail ? EXAMPLE_PLAYLIST_URL : EXAMPLE_VIDEO_URL);
+                  setError("");
+                  setNeedsLogin(false);
+                }}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 text-left transition-colors"
               >
                 {userEmail
@@ -432,7 +460,7 @@ export default function HomeClient({ userEmail }: Props) {
           </form>
 
           {transcript && (
-            <div className="w-full flex flex-col gap-2 text-left border rounded-lg px-4 py-3">
+            <div className="w-full flex flex-col gap-2 text-left bg-card border rounded-lg px-4 py-3">
               <div className="flex items-start gap-3">
                 {videoId && (
                   <a
@@ -458,9 +486,13 @@ export default function HomeClient({ userEmail }: Props) {
                         href={`https://www.youtube.com/watch?v=${videoId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-semibold text-sm hover:underline truncate block"
+                        className="font-semibold text-sm text-primary underline underline-offset-2 truncate flex items-center gap-1"
                       >
-                        {videoTitle}
+                        <span className="truncate">{videoTitle}</span>
+                        <svg className="h-3 w-3 shrink-0 opacity-60" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                        </svg>
                       </a>
                     ) : (
                       <p className="font-semibold text-sm truncate">{videoTitle}</p>
@@ -486,11 +518,16 @@ export default function HomeClient({ userEmail }: Props) {
                 {" · "}
                 {transcript.length.toLocaleString()} chars
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant={copied ? "default" : "outline"}
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
                   onClick={copyTranscript}
-                  className="flex-1 transition-colors"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "sm" }),
+                    copied
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-muted-foreground",
+                  )}
                 >
                   {copied ? (
                     <span className="flex items-center gap-1.5">
@@ -499,15 +536,16 @@ export default function HomeClient({ userEmail }: Props) {
                       </svg>
                       Copied!
                     </span>
-                  ) : "Copy"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={downloadSingle}
-                  className="flex-1"
-                >
-                  Download (.txt)
-                </Button>
+                  ) : "Copy text"}
+                </button>
+                <div className="flex gap-1.5 shrink-0">
+                  <Button size="sm" onClick={() => downloadSingle("txt")}>
+                    Download .txt
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => downloadSingle("json")}>
+                    .json
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -544,6 +582,27 @@ export default function HomeClient({ userEmail }: Props) {
             ))}
           </div>
         </div>
+
+        {/* Use cases */}
+        <section className="w-full max-w-2xl pt-8 border-t">
+          <p className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-5">
+            Who uses this
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-left">
+            {USE_CASES.map((uc) => (
+              <div
+                key={uc.title}
+                className="flex flex-col gap-1.5 rounded-lg border bg-card p-3"
+              >
+                <span className="text-2xl leading-none">{uc.icon}</span>
+                <p className="font-semibold text-sm">{uc.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {uc.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
