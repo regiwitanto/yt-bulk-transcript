@@ -89,6 +89,7 @@ export default function HomeClient({ userEmail }: Props) {
 
   // Single video result
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [videoId, setVideoId] = useState<string | null>(null);
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
   const [videoChannel, setVideoChannel] = useState<string | null>(null);
   const [fetchDuration, setFetchDuration] = useState<number | null>(null);
@@ -116,6 +117,7 @@ export default function HomeClient({ userEmail }: Props) {
     setInfo("");
     setNeedsLogin(false);
     setTranscript(null);
+    setVideoId(null);
     setVideoTitle(null);
     setVideoChannel(null);
     setFetchDuration(null);
@@ -179,6 +181,7 @@ export default function HomeClient({ userEmail }: Props) {
         }
         setFetchDuration(Date.now() - t0);
         setTranscript(data.transcript);
+        setVideoId(data.videoId ?? null);
         setVideoTitle(data.title ?? null);
         setVideoChannel(data.channelName ?? null);
       }
@@ -304,7 +307,8 @@ export default function HomeClient({ userEmail }: Props) {
                   onChange={(e) => {
                     setUrl(e.target.value);
                     if (!e.target.value.trim()) {
-                      setTranscript(null);
+                        setTranscript(null);
+                      setVideoId(null);
                       setFetchDuration(null);
                       setError("");
                       setNeedsLogin(false);
@@ -319,7 +323,8 @@ export default function HomeClient({ userEmail }: Props) {
                     type="button"
                     onClick={() => {
                       setUrl("");
-                      setTranscript(null);
+                        setTranscript(null);
+                      setVideoId(null);
                       setFetchDuration(null);
                       setError("");
                       setNeedsLogin(false);
@@ -428,16 +433,46 @@ export default function HomeClient({ userEmail }: Props) {
 
           {transcript && (
             <div className="w-full flex flex-col gap-2 text-left border rounded-lg px-4 py-3">
-              <div>
-                {videoTitle && (
-                  <p className="font-semibold text-sm truncate">{videoTitle}</p>
+              <div className="flex items-start gap-3">
+                {videoId && (
+                  <a
+                    href={`https://www.youtube.com/watch?v=${videoId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  >
+                    <img
+                      src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                      alt=""
+                      width={120}
+                      height={68}
+                      className="rounded object-cover w-[120px] h-[68px] bg-muted"
+                    />
+                  </a>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  {videoChannel}
-                  {videoChannel && fetchDuration !== null && " · "}
-                  {fetchDuration !== null &&
-                    `Fetched in ${(fetchDuration / 1000).toFixed(1)}s`}
-                </p>
+                <div className="min-w-0 flex-1">
+                  {videoTitle && (
+                    videoId ? (
+                      <a
+                        href={`https://www.youtube.com/watch?v=${videoId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-sm hover:underline truncate block"
+                      >
+                        {videoTitle}
+                      </a>
+                    ) : (
+                      <p className="font-semibold text-sm truncate">{videoTitle}</p>
+                    )
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {videoChannel}
+                    {videoChannel && fetchDuration !== null && " · "}
+                    {fetchDuration !== null &&
+                      `Fetched in ${(fetchDuration / 1000).toFixed(1)}s`}
+                  </p>
+                </div>
               </div>
               <textarea
                 readOnly

@@ -318,22 +318,31 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           </div>
           <div className="flex gap-2 shrink-0">
             {isComplete && dismissed && succeededCount > 0 && (
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
+              <div className="flex shrink-0">
+                <button
                   disabled={downloading !== false}
                   onClick={() => downloadFile("txt")}
+                  title="Download as plain text"
+                  className={cn(
+                    buttonVariantOutlineSm,
+                    "rounded-r-none border-r-0",
+                    downloading !== false && "opacity-60 cursor-not-allowed",
+                  )}
                 >
-                  {downloading === "txt" ? "Preparing…" : "Download .txt"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
+                  {downloading === "txt" ? "…" : ".txt"}
+                </button>
+                <button
                   disabled={downloading !== false}
                   onClick={() => downloadFile("json")}
+                  title="Download as JSON"
+                  className={cn(
+                    buttonVariantOutlineSm,
+                    "rounded-l-none",
+                    downloading !== false && "opacity-60 cursor-not-allowed",
+                  )}
                 >
                   {downloading === "json" ? "…" : ".json"}
-                </Button>
+                </button>
               </div>
             )}
             {!isComplete && !started && (
@@ -394,7 +403,22 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                   <span className="text-xs text-muted-foreground w-8 shrink-0 text-right">
                     {i + 1}.
                   </span>
-                  <span className="flex-1 text-sm truncate">{video.title}</span>
+                  <img
+                    src={`https://img.youtube.com/vi/${video.yt_video_id}/default.jpg`}
+                    alt=""
+                    width={60}
+                    height={45}
+                    className="rounded shrink-0 object-cover w-[60px] h-[45px] bg-muted"
+                    loading="lazy"
+                  />
+                  <a
+                    href={`https://www.youtube.com/watch?v=${video.yt_video_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-sm truncate hover:underline"
+                  >
+                    {video.title}
+                  </a>
                   {videoDurations[video.id] !== undefined && (
                     <span className="text-xs text-muted-foreground shrink-0">
                       {(videoDurations[video.id] / 1000).toFixed(1)}s
@@ -471,7 +495,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           aria-modal="true"
           aria-labelledby="done-title"
         >
-          <div className="bg-background rounded-xl shadow-xl p-6 max-w-md w-full space-y-4 text-center relative">
+          <div className="bg-background rounded-xl shadow-xl p-6 max-w-md w-full space-y-6 text-center relative">
             <button
               onClick={() => setDismissed(true)}
               className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -512,7 +536,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             <h2 id="done-title" className="text-2xl font-bold">
               All done!
             </h2>
-            <div className="text-muted-foreground space-y-1">
+            <div className="text-muted-foreground space-y-1.5">
               {(() => {
                 const succeeded = videos.filter(
                   (v) => v.status === "success",
@@ -544,18 +568,18 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                         no transcript available.
                       </p>
                     )}
+                    {totalWords > 0 && (
+                      <p className="text-sm">
+                        ~{totalWords.toLocaleString()} words across {succeededCount} video{succeededCount !== 1 ? "s" : ""}
+                      </p>
+                    )}
                   </>
                 );
               })()}
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {succeededCount > 0 ? (
                 <>
-                  {totalWords > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      ~{totalWords.toLocaleString()} words across {succeededCount} video{succeededCount !== 1 ? "s" : ""}
-                    </p>
-                  )}
                   <div className="flex gap-2">
                     <Button
                       className="flex-1"
@@ -566,12 +590,13 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                       {downloading === "txt" ? "Preparing…" : "Download .txt"}
                     </Button>
                     <Button
+                      className="flex-1"
                       variant="outline"
                       disabled={downloading !== false}
                       onClick={() => downloadFile("json")}
                       size="lg"
                     >
-                      {downloading === "json" ? "…" : ".json"}
+                      {downloading === "json" ? "Preparing…" : "Download .json"}
                     </Button>
                   </div>
                   {downloadError && (

@@ -31,6 +31,7 @@ interface Props {
   totalPages: number;
   totalCount: number;
   succeededMap: Record<string, number>;
+  thumbMap: Record<string, string>;
 }
 
 export default function HistoryClient({
@@ -39,6 +40,7 @@ export default function HistoryClient({
   totalPages,
   totalCount,
   succeededMap,
+  thumbMap,
 }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<Playlist[]>(initialRows);
@@ -292,6 +294,16 @@ export default function HistoryClient({
                 <span className="text-xs text-muted-foreground w-5 shrink-0 text-right">
                   {rowNum}.
                 </span>
+                {thumbMap[playlist.id] && (
+                  <img
+                    src={`https://img.youtube.com/vi/${thumbMap[playlist.id]}/default.jpg`}
+                    alt=""
+                    width={60}
+                    height={45}
+                    className="rounded shrink-0 object-cover w-[60px] h-[45px] bg-muted"
+                    loading="lazy"
+                  />
+                )}
                 <Link
                   href={`/dashboard/${playlist.id}`}
                   className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
@@ -328,14 +340,24 @@ export default function HistoryClient({
                 (succeededMap[playlist.id] ?? 0) > 0 ? (
                   <DownloadButton playlistId={playlist.id} />
                 ) : (
-                  <span
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "sm" }),
-                      "shrink-0 opacity-40 cursor-not-allowed pointer-events-none",
-                    )}
-                  >
-                    Download
-                  </span>
+                  <div className="flex shrink-0 opacity-40 cursor-not-allowed pointer-events-none">
+                    <span
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "rounded-r-none border-r-0",
+                      )}
+                    >
+                      .txt
+                    </span>
+                    <span
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "rounded-l-none",
+                      )}
+                    >
+                      .json
+                    </span>
+                  </div>
                 )}
               </div>
             );

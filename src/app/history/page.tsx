@@ -58,14 +58,27 @@ export default async function HistoryPage({
   // This tells us whether the Download button should be enabled.
   const playlistIds = rows.map((r) => r.id);
   const succeededMap: Record<string, number> = {};
+  const thumbMap: Record<string, string> = {};
   if (playlistIds.length > 0) {
-    const { data: succeededRows } = await supabaseAdmin
-      .from("videos")
-      .select("playlist_id")
-      .in("playlist_id", playlistIds)
-      .eq("status", "success");
+    const [{ data: succeededRows }, { data: thumbRows }] = await Promise.all([
+      supabaseAdmin
+        .from("videos")
+        .select("playlist_id")
+        .in("playlist_id", playlistIds)
+        .eq("status", "success"),
+      // Grab only the first video (position 0) per playlist for the thumbnail.
+      // Extremely lightweight: at most PAGE_SIZE rows returned.
+      supabaseAdmin
+        .from("videos")
+        .select("playlist_id, yt_video_id")
+        .in("playlist_id", playlistIds)
+        .eq("position", 0),
+    ]);
     for (const row of succeededRows ?? []) {
       succeededMap[row.playlist_id] = (succeededMap[row.playlist_id] ?? 0) + 1;
+    }
+    for (const row of thumbRows ?? []) {
+      if (row.yt_video_id) thumbMap[row.playlist_id] = row.yt_video_id;
     }
   }
 
@@ -105,6 +118,7 @@ export default async function HistoryPage({
           totalPages={totalPages}
           totalCount={totalCount ?? 0}
           succeededMap={succeededMap}
+          thumbMap={thumbMap}
         />
       </main>
     </div>
