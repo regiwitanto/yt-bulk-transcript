@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import DashboardClient from "@/app/dashboard/[playlistId]/DashboardClient";
 import type { Database } from "@/lib/database.types";
 
@@ -8,6 +9,20 @@ type Video = Database["public"]["Tables"]["videos"]["Row"];
 
 interface Props {
   params: Promise<{ playlistId: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { playlistId } = await params;
+  const { data } = await supabaseAdmin
+    .from("playlists")
+    .select("title")
+    .eq("id", playlistId)
+    .single();
+  return {
+    title: data?.title
+      ? `${data.title} | YouTube Bulk Transcript`
+      : "Dashboard | YouTube Bulk Transcript",
+  };
 }
 
 export default async function DashboardPage({ params }: Props) {

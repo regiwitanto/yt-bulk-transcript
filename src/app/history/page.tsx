@@ -5,9 +5,14 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/database.types";
+import type { Metadata } from "next";
 import HistoryClient from "./HistoryClient";
 import { SignOutButton } from "./SignOutButton";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+export const metadata: Metadata = {
+  title: "My History | YouTube Bulk Transcript",
+};
 
 type PlaylistRow = Database["public"]["Tables"]["playlists"]["Row"];
 type Playlist = PlaylistRow & { video_count: number };

@@ -7,7 +7,12 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { signInWithGoogle } from "./actions";
+
+export const metadata: Metadata = {
+  title: "Sign In | YouTube Bulk Transcript",
+};
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_failed: "Sign-in failed. Please try again.",
