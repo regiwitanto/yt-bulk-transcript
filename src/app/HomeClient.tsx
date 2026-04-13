@@ -316,7 +316,7 @@ export default function HomeClient({ userEmail }: Props) {
             Extract transcripts from any YouTube video or playlist
           </h1>
           <p className="text-muted-foreground text-lg">
-            Paste a YouTube URL and download the transcript as a .txt file.
+            Paste a YouTube URL and download the transcript as <strong>.txt</strong> or <strong>.json</strong>.
           </p>
         </div>
 

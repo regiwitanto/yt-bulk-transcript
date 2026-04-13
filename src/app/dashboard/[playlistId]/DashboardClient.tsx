@@ -314,6 +314,11 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                     ? `Processing ${done} / ${total}${errorCount > 0 ? ` · ${errorCount} error${errorCount !== 1 ? "s" : ""}` : ""}`
                     : `${done} / ${total} done — paused${errorCount > 0 ? ` · ${errorCount} error${errorCount !== 1 ? "s" : ""}` : ""}`}
               </span>
+              {totalWords > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  · ~{totalWords.toLocaleString()} words
+                </span>
+              )}
             </div>
           </div>
           <div className="flex gap-2 shrink-0">

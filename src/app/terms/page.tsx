@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata = {
   title: "Terms of Service · YouTube Bulk Transcript",
@@ -7,13 +8,14 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="border-b px-6 py-4">
+      <header className="border-b px-6 py-4 flex items-center justify-between">
         <Link
           href="/"
           className="font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"
         >
           YouTube Bulk Transcript
         </Link>
+        <ThemeToggle />
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-12">
