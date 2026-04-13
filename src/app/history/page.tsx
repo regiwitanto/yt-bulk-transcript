@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/database.types";
 import HistoryClient from "./HistoryClient";
 import { SignOutButton } from "./SignOutButton";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type PlaylistRow = Database["public"]["Tables"]["playlists"]["Row"];
 type Playlist = PlaylistRow & { video_count: number };
@@ -61,6 +62,7 @@ export default async function HistoryPage({
           <span className="text-sm text-muted-foreground hidden sm:inline">
             {user.email}
           </span>
+          <ThemeToggle />
           <SignOutButton />
         </div>
       </header>

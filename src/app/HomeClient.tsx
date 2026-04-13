@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const STEPS = [
   { title: "Paste any YouTube URL", desc: "Playlist or single video" },
@@ -263,6 +264,7 @@ export default function HomeClient({ userEmail }: Props) {
               Sign In
             </Link>
           )}
+          <ThemeToggle />
         </div>
       </header>
 
@@ -467,7 +469,7 @@ export default function HomeClient({ userEmail }: Props) {
       <footer className="border-t px-6 py-4 text-center text-sm text-muted-foreground">
         Support this project:{" "}
         <a
-          href="https://buymeacoffee.com"
+          href={process.env.NEXT_PUBLIC_BMAC_URL ?? "https://buymeacoffee.com"}
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:text-foreground"

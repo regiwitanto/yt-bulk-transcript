@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { Database } from "@/lib/database.types";
 
 const buttonVariantOutlineSm = cn(
@@ -50,7 +51,15 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     ).length;
     return alreadyDone === initialVideos.length && initialVideos.length > 0;
   });
-  const [started, setStarted] = useState(playlist.status === "pending");
+  const [started, setStarted] = useState(
+    playlist.status === "pending" ||
+      // Auto-resume if the browser crashed mid-processing — videos still
+      // marked "processing" or "queued" in the DB need to be retried.
+      (playlist.status === "processing" &&
+        initialVideos.some(
+          (v) => v.status === "queued" || v.status === "processing",
+        )),
+  );
   const [videoDurations, setVideoDurations] = useState<Record<string, number>>(
     {},
   );
@@ -306,6 +315,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               </svg>
               Home
             </Link>
+            <ThemeToggle />
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -471,7 +481,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             <p className="text-xs text-muted-foreground">
               Finding this useful?{" "}
               <a
-                href="https://buymeacoffee.com"
+                href={process.env.NEXT_PUBLIC_BMAC_URL ?? "https://buymeacoffee.com"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-foreground"

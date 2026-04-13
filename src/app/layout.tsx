@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,10 +13,26 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_DESCRIPTION =
+  "Extract transcripts from entire YouTube playlists in bulk. Get every video as clean text in one file. Free, fast, and no API key needed.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://yt-bulk-transcript.vercel.app",
+  ),
   title: "YouTube Bulk Transcript",
-  description:
-    "Extract transcripts from entire YouTube playlists in bulk. Get every video as clean text in one file.",
+  description: APP_DESCRIPTION,
+  openGraph: {
+    title: "YouTube Bulk Transcript",
+    description: APP_DESCRIPTION,
+    type: "website",
+    siteName: "YouTube Bulk Transcript",
+  },
+  twitter: {
+    card: "summary",
+    title: "YouTube Bulk Transcript",
+    description: APP_DESCRIPTION,
+  },
   icons: {
     icon: [
       {
@@ -34,9 +51,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
