@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -259,13 +260,8 @@ export default function HomeClient({ userEmail }: Props) {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-background border-b px-6 py-4 flex items-center justify-between">
-        <Link
-          href="/"
-          className="font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"
-        >
-          YouTube Bulk Transcript
-        </Link>
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between">
+        <Logo />
         <div className="flex items-center gap-3">
           {userEmail ? (
             <>
@@ -306,7 +302,11 @@ export default function HomeClient({ userEmail }: Props) {
       </header>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center gap-5">
+      <main className="relative flex-1 flex flex-col items-center justify-center px-6 py-8 text-center gap-5 overflow-hidden">
+        {/* Radial gradient glow behind hero content */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-20 flex justify-center">
+          <div className="h-[400px] w-[900px] rounded-full bg-primary/10 blur-[120px]" />
+        </div>
         <div className="max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-muted-foreground bg-muted/60">
             <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" aria-hidden="true" />
@@ -592,9 +592,11 @@ export default function HomeClient({ userEmail }: Props) {
             {USE_CASES.map((uc) => (
               <div
                 key={uc.title}
-                className="flex flex-col gap-1.5 rounded-lg border bg-card p-3"
+                className="flex flex-col gap-2 rounded-lg border bg-card p-3 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default"
               >
-                <span className="text-2xl leading-none">{uc.icon}</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-xl leading-none">
+                  {uc.icon}
+                </div>
                 <p className="font-semibold text-sm">{uc.title}</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {uc.desc}

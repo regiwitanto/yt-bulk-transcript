@@ -377,8 +377,18 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             <ThemeToggle />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Progress value={progress} className="h-2 flex-1 dark:bg-white/15" />
+        <div className="relative flex items-center gap-3">
+            <div className="relative flex-1 h-2">
+              <Progress value={progress} className="h-2 dark:bg-white/15" />
+              {!isComplete && (
+                <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
+                  <div
+                    className="h-full w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    style={{ animation: "bar-shimmer 2s ease-in-out infinite" }}
+                  />
+                </div>
+              )}
+            </div>
           <span className="text-xs text-muted-foreground tabular-nums w-9 text-right shrink-0">
             {progress}%
           </span>
@@ -401,7 +411,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
                 <div
                   key={video.id}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 transition-colors",
+                    "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
                     ROW_BG[video.status],
                   )}
                 >

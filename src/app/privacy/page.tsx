@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 export const metadata = {
   title: "Privacy Policy · YouTube Bulk Transcript",
@@ -9,12 +10,7 @@ export default function PrivacyPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="border-b px-6 py-4 flex items-center justify-between">
-        <Link
-          href="/"
-          className="font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"
-        >
-          YouTube Bulk Transcript
-        </Link>
+        <Logo />
         <ThemeToggle />
       </header>
 

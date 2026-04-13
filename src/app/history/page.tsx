@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import HistoryClient from "./HistoryClient";
 import { SignOutButton } from "./SignOutButton";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 export const metadata: Metadata = {
   title: "My History | YouTube Bulk Transcript",
@@ -85,12 +86,7 @@ export default async function HistoryPage({
   return (
     <div className="flex flex-col min-h-screen">
       <header className="sticky top-0 z-30 bg-background border-b px-6 py-4 flex items-center justify-between">
-        <Link
-          href="/"
-          className="font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"
-        >
-          YouTube Bulk Transcript
-        </Link>
+        <Logo />
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground hidden sm:inline">
             {user.email}
