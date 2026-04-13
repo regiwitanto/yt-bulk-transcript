@@ -83,10 +83,13 @@ export async function GET(
     });
   }
 
-  // ── TXT export (default) ───────────────────────────────────────────────────
+  // ── TXT/Markdown export (default) ──────────────────────────────────────────
   const text = videos
-    .map((v, i) => `=== ${i + 1}. ${v.title} ===\n\n${v.transcript}`)
-    .join("\n\n\n");
+    .map(
+      (v, i) =>
+        `## ${v.position ?? i + 1}. ${v.title}\nURL: https://www.youtube.com/watch?v=${v.yt_video_id}\n\n${v.transcript}`,
+    )
+    .join("\n\n---\n\n");
 
   return new NextResponse(text, {
     headers: {

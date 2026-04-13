@@ -131,10 +131,10 @@ export default function HistoryClient({
 
   return (
     <>
-      {/* Bulk action bar */}
+      {/* Floating Bulk Action Bar */}
       {(selected.size > 0 || crossPageAll) && (
-        <div className="flex flex-col gap-2 mb-3 sticky top-[61px] z-20 bg-background py-2 -mx-1 px-1 border-b">
-          <div className="flex items-center justify-between px-1">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 shadow-xl border bg-background/90 backdrop-blur-md px-4 py-3 rounded-2xl animate-in slide-in-from-bottom-8">
+          <div className="flex items-center justify-between gap-4">
             <span className="text-sm text-muted-foreground">
               {crossPageAll
                 ? `All ${totalCount} selected`
