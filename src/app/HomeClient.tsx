@@ -55,6 +55,18 @@ function detectUrlType(raw: string): "playlist" | "single" | "unknown" {
   }
 }
 
+/** Returns true when a URL has both v= (specific video) and list= (playlist). */
+function isVideoInPlaylist(raw: string): boolean {
+  try {
+    const parsed = new URL(raw);
+    return (
+      parsed.searchParams.has("v") && parsed.searchParams.has("list")
+    );
+  } catch {
+    return false;
+  }
+}
+
 interface Props {
   userEmail: string | null;
 }
@@ -351,16 +363,28 @@ export default function HomeClient({ userEmail }: Props) {
               </p>
             )}
             {!error &&
+              !needsLogin &&
               !loading &&
               url &&
               (() => {
                 const type = detectUrlType(url);
                 if (type === "unknown") return null;
+                const mixed = isVideoInPlaylist(url);
                 return (
-                  <p className="text-xs text-muted-foreground text-left">
-                    Detected:{" "}
-                    {type === "playlist" ? "Playlist" : "Single video"}
-                  </p>
+                  <div className="text-xs text-muted-foreground text-left space-y-1">
+                    <p>
+                      Detected:{" "}
+                      {type === "playlist" ? "Playlist" : "Single video"}
+                    </p>
+                    {mixed && (
+                      <p>
+                        This URL points to a video inside a playlist. To
+                        extract the full playlist, use the playlist URL
+                        without the <code className="font-mono">v=</code>{" "}
+                        parameter.
+                      </p>
+                    )}
+                  </div>
                 );
               })()}
             {info && (

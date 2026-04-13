@@ -9,7 +9,7 @@ const CHUNK_SIZE = 100;
 export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
-  if (!checkRateLimit(`ingest:${ip}`, { limit: 10, windowMs: 60_000 })) {
+  if (!await checkRateLimit(`ingest:${ip}`, { limit: 10, windowMs: 60_000 })) {
     return NextResponse.json(
       { error: "Too many requests. Please wait a minute and try again." },
       { status: 429 },

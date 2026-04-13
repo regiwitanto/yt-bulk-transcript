@@ -42,6 +42,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   const startTimeRef = useRef<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
   const [dismissed, setDismissed] = useState(() => {
     const alreadyDone = initialVideos.filter(
@@ -172,6 +173,43 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     runningRef.current = false;
   }, [videos, updateVideoStatus, playlist.id]);
 
+  // Keep a stable ref to the latest runLoop so the started-effect can call it
+  // without becoming a dep (which would cause infinite re-runs).
+  const runLoopRef = useRef(runLoop);
+  useEffect(() => {
+    runLoopRef.current = runLoop;
+  }, [runLoop]);
+
+  // Shared download handler — fetch+Blob so errors surface and we know when done.
+  const downloadTranscripts = useCallback(async () => {
+    setDownloading(true);
+    setDownloadError("");
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const res = await fetch(
+        `/api/download/${playlist.id}?tz=${encodeURIComponent(tz)}`,
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDownloadError(
+          (data as { error?: string }).error ?? "Download failed. Please try again.",
+        );
+        return;
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const disposition = res.headers.get("Content-Disposition");
+      const match = disposition?.match(/filename="([^"]+)"/);
+      a.download = match?.[1] ?? `transcripts-${playlist.id}.txt`;
+      a.href = objectUrl;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } finally {
+      setDownloading(false);
+    }
+  }, [playlist.id]);
+
   // Start processing only when user triggers it (or on mount if already complete)
   useEffect(() => {
     if (isComplete) {
@@ -187,8 +225,12 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
 
   useEffect(() => {
     if (started && !isComplete) {
-      runLoop();
+      // Call via ref so we always get the latest runLoop without making it
+      // a dep here (which would re-run the effect on every video status change).
+      runLoopRef.current();
     }
+    // isComplete intentionally excluded: we only want to fire once when the
+    // user clicks Resume, not re-fire whenever progress updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started]);
 
@@ -235,12 +277,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
               <Button
                 size="sm"
                 disabled={downloading}
-                onClick={() => {
-                  setDownloading(true);
-                  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                  window.location.href = `/api/download/${playlist.id}?tz=${encodeURIComponent(tz)}`;
-                  setTimeout(() => setDownloading(false), 5000);
-                }}
+                onClick={downloadTranscripts}
               >
                 {downloading ? "Preparing…" : "Download (.txt)"}
               </Button>
@@ -414,16 +451,16 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             <div className="flex flex-col gap-2">
               <Button
                 disabled={downloading}
-                onClick={() => {
-                  setDownloading(true);
-                  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                  window.location.href = `/api/download/${playlist.id}?tz=${encodeURIComponent(tz)}`;
-                  setTimeout(() => setDownloading(false), 5000);
-                }}
+                onClick={downloadTranscripts}
                 size="lg"
               >
                 {downloading ? "Preparing…" : "Download Transcripts (.txt)"}
               </Button>
+              {downloadError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {downloadError}
+                </p>
+              )}
               <Link
                 href="/history"
                 className={cn(buttonVariantOutlineSm, "text-center")}

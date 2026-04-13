@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   // Rate limit per authenticated user — 300 req/min covers a 300-video playlist
   // at CONCURRENCY=5. Protects against runaway loops, not normal large playlists.
   if (
-    !checkRateLimit(`transcribe:${user.id}`, { limit: 300, windowMs: 60_000 })
+    !await checkRateLimit(`transcribe:${user.id}`, { limit: 300, windowMs: 60_000 })
   ) {
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }

@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
   if (
-    !checkRateLimit(`single-transcript:${ip}`, { limit: 20, windowMs: 60_000 })
+    !await checkRateLimit(`single-transcript:${ip}`, { limit: 20, windowMs: 60_000 })
   ) {
     return NextResponse.json(
       { error: "Too many requests. Please wait a minute and try again." },
