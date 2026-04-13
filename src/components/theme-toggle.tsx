@@ -15,6 +15,7 @@ export function ThemeToggle() {
     <button
       type="button"
       aria-label="Toggle dark mode"
+      aria-pressed={mounted && resolvedTheme === "dark"}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
       className={cn(
         buttonVariants({ variant: "ghost", size: "sm" }),

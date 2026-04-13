@@ -14,6 +14,12 @@ const STEPS = [
   { title: "Download as .txt", desc: "One clean file, ready to use" },
 ];
 
+// Examples shown to new users — single video for guests (no login needed),
+// playlist for signed-in users who can extract full playlists.
+const EXAMPLE_VIDEO_URL = "https://www.youtube.com/watch?v=jNQXAC9IVRw"; // "Me at the Zoo" — first ever YouTube video
+const EXAMPLE_PLAYLIST_URL =
+  "https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab"; // 3Blue1Brown: Essence of Linear Algebra
+
 function Spinner() {
   return (
     <svg
@@ -269,8 +275,12 @@ export default function HomeClient({ userEmail }: Props) {
       </header>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center gap-6">
-        <div className="max-w-2xl space-y-2">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center gap-5">
+        <div className="max-w-2xl space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-muted-foreground bg-muted/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" aria-hidden="true" />
+            Free &middot; No API key &middot; Single videos need no account
+          </div>
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
             Extract transcripts from any YouTube video or playlist
           </h1>
@@ -346,6 +356,21 @@ export default function HomeClient({ userEmail }: Props) {
                 )}
               </Button>
             </div>
+            {!url && !loading && (
+              <button
+                type="button"
+                onClick={() =>
+                  setUrl(
+                    userEmail ? EXAMPLE_PLAYLIST_URL : EXAMPLE_VIDEO_URL,
+                  )
+                }
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 text-left transition-colors"
+              >
+                {userEmail
+                  ? "Try with an example playlist →"
+                  : "Try with an example video (no sign-in needed) →"}
+              </button>
+            )}
             {(error || needsLogin) && (
               <p
                 id="yt-url-error"
@@ -421,13 +446,25 @@ export default function HomeClient({ userEmail }: Props) {
                 aria-label="Transcript"
                 className="w-full rounded-md border bg-muted px-3 py-2 text-sm font-mono resize-y"
               />
+              <p className="text-xs text-right text-muted-foreground -mt-1">
+                {transcript.split(/\s+/).filter(Boolean).length.toLocaleString()} words
+                {" · "}
+                {transcript.length.toLocaleString()} chars
+              </p>
               <div className="flex gap-2">
                 <Button
-                  variant="outline"
+                  variant={copied ? "default" : "outline"}
                   onClick={copyTranscript}
-                  className="flex-1"
+                  className="flex-1 transition-colors"
                 >
-                  {copied ? "Copied!" : "Copy"}
+                  {copied ? (
+                    <span className="flex items-center gap-1.5">
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Copied!
+                    </span>
+                  ) : "Copy"}
                 </Button>
                 <Button
                   variant="outline"
@@ -442,24 +479,31 @@ export default function HomeClient({ userEmail }: Props) {
         </div>
 
         {/* How it works */}
-        <div className="w-full max-w-2xl pt-6 border-t">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground text-center mb-4">
-            How it works
-          </p>
+        <div className="w-full max-w-2xl pt-5 border-t">
           <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
             {STEPS.map((step, i) => (
               <Fragment key={i}>
                 <div className="flex flex-col items-center gap-2 text-center flex-1">
-                  <div className="w-9 h-9 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold shrink-0">
+                  <div className="w-9 h-9 rounded-full border-2 border-foreground/20 bg-muted text-foreground flex items-center justify-center text-sm font-bold shrink-0">
                     {i + 1}
                   </div>
                   <p className="font-semibold text-sm">{step.title}</p>
                   <p className="text-xs text-muted-foreground">{step.desc}</p>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className="text-muted-foreground sm:mt-3 rotate-90 sm:rotate-0">
-                    &rarr;
-                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-muted-foreground shrink-0 sm:mt-2.5 rotate-90 sm:rotate-0"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                 )}
               </Fragment>
             ))}
@@ -468,16 +512,28 @@ export default function HomeClient({ userEmail }: Props) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t px-6 py-4 text-center text-sm text-muted-foreground">
-        Support this project:{" "}
-        <a
-          href={process.env.NEXT_PUBLIC_BMAC_URL ?? "https://buymeacoffee.com"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-foreground"
-        >
-          Buy Me a Coffee
-        </a>
+      <footer className="border-t px-6 py-4">
+        <div className="flex items-center justify-center gap-3 flex-wrap text-sm text-muted-foreground">
+          <span>
+            Support this project:{" "}
+            <a
+              href={process.env.NEXT_PUBLIC_BMAC_URL ?? "https://buymeacoffee.com"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              Buy Me a Coffee
+            </a>
+          </span>
+          <span aria-hidden="true">·</span>
+          <Link href="/privacy" className="hover:text-foreground transition-colors">
+            Privacy
+          </Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/terms" className="hover:text-foreground transition-colors">
+            Terms
+          </Link>
+        </div>
       </footer>
     </div>
   );
