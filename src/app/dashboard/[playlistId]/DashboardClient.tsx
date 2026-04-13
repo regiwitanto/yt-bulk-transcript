@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -58,7 +58,7 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   const runningRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<"txt" | "json" | false>(false);
   const [downloadError, setDownloadError] = useState("");
 
   const [dismissed, setDismissed] = useState(() => {
@@ -89,6 +89,18 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
   const isComplete = done === total && total > 0;
   const errorCount = videos.filter((v) => v.status === "error").length;
   const succeededCount = videos.filter((v) => v.status === "success").length;
+  const totalWords = useMemo(
+    () =>
+      videos
+        .filter((v) => v.status === "success" && v.transcript)
+        .reduce(
+          (acc, v) =>
+            acc +
+            (v.transcript?.trim().split(/\s+/).filter(Boolean).length ?? 0),
+          0,
+        ),
+    [videos],
+  );
 
   const updateVideoStatus = useCallback(
     (
@@ -207,35 +219,40 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
     runLoopRef.current = runLoop;
   }, [runLoop]);
 
-  // Shared download handler — fetch+Blob so errors surface and we know when done.
-  const downloadTranscripts = useCallback(async () => {
-    setDownloading(true);
-    setDownloadError("");
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const res = await fetch(
-        `/api/download/${playlist.id}?tz=${encodeURIComponent(tz)}`,
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setDownloadError(
-          (data as { error?: string }).error ?? "Download failed. Please try again.",
+  // Shared download handler (txt or json) — fetch+Blob so errors surface.
+  const downloadFile = useCallback(
+    async (format: "txt" | "json") => {
+      setDownloading(format);
+      setDownloadError("");
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const res = await fetch(
+          `/api/download/${playlist.id}?format=${format}&tz=${encodeURIComponent(tz)}`,
         );
-        return;
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setDownloadError(
+            (data as { error?: string }).error ??
+              "Download failed. Please try again.",
+          );
+          return;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const disposition = res.headers.get("Content-Disposition");
+        const match = disposition?.match(/filename="([^"]+)"/);
+        a.download =
+          match?.[1] ?? `transcripts-${playlist.id}.${format}`;
+        a.href = objectUrl;
+        a.click();
+        URL.revokeObjectURL(objectUrl);
+      } finally {
+        setDownloading(false);
       }
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const disposition = res.headers.get("Content-Disposition");
-      const match = disposition?.match(/filename="([^"]+)"/);
-      a.download = match?.[1] ?? `transcripts-${playlist.id}.txt`;
-      a.href = objectUrl;
-      a.click();
-      URL.revokeObjectURL(objectUrl);
-    } finally {
-      setDownloading(false);
-    }
-  }, [playlist.id]);
+    },
+    [playlist.id],
+  );
 
   // Start processing only when user triggers it (or on mount if already complete)
   useEffect(() => {
@@ -301,13 +318,23 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
           </div>
           <div className="flex gap-2 shrink-0">
             {isComplete && dismissed && succeededCount > 0 && (
-              <Button
-                size="sm"
-                disabled={downloading}
-                onClick={downloadTranscripts}
-              >
-                {downloading ? "Preparing…" : "Download (.txt)"}
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  disabled={downloading !== false}
+                  onClick={() => downloadFile("txt")}
+                >
+                  {downloading === "txt" ? "Preparing…" : "Download .txt"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={downloading !== false}
+                  onClick={() => downloadFile("json")}
+                >
+                  {downloading === "json" ? "…" : ".json"}
+                </Button>
+              </div>
             )}
             {!isComplete && !started && (
               <Button size="sm" onClick={() => setStarted(true)}>
@@ -524,13 +551,29 @@ export default function DashboardClient({ playlist, initialVideos }: Props) {
             <div className="flex flex-col gap-2">
               {succeededCount > 0 ? (
                 <>
-                  <Button
-                    disabled={downloading}
-                    onClick={downloadTranscripts}
-                    size="lg"
-                  >
-                    {downloading ? "Preparing…" : "Download Transcripts (.txt)"}
-                  </Button>
+                  {totalWords > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      ~{totalWords.toLocaleString()} words across {succeededCount} video{succeededCount !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      disabled={downloading !== false}
+                      onClick={() => downloadFile("txt")}
+                      size="lg"
+                    >
+                      {downloading === "txt" ? "Preparing…" : "Download .txt"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={downloading !== false}
+                      onClick={() => downloadFile("json")}
+                      size="lg"
+                    >
+                      {downloading === "json" ? "…" : ".json"}
+                    </Button>
+                  </div>
                   {downloadError && (
                     <p role="alert" className="text-sm text-destructive">
                       {downloadError}

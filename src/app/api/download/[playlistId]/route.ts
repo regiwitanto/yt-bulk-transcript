@@ -16,6 +16,7 @@ export async function GET(
 
   const { playlistId } = await params;
   const tz = req.nextUrl.searchParams.get("tz") ?? "UTC";
+  const format = req.nextUrl.searchParams.get("format") ?? "txt";
 
   const { data: playlist } = await supabaseAdmin
     .from("playlists")
@@ -33,7 +34,7 @@ export async function GET(
 
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("title, transcript, status")
+    .select("title, transcript, status, yt_video_id, position")
     .eq("playlist_id", playlistId)
     .eq("status", "success")
     .order("position", { ascending: true });
@@ -45,10 +46,6 @@ export async function GET(
     );
   }
 
-  const text = videos
-    .map((v, i) => `=== ${i + 1}. ${v.title} ===\n\n${v.transcript}`)
-    .join("\n\n\n");
-
   const sanitize = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
   const title = sanitize(playlist.title);
   const channel = playlist.channel_name
@@ -56,19 +53,46 @@ export async function GET(
     : null;
   const prefix = channel ? `${channel} - ${title}` : title;
   const d = new Date(playlist.created_at);
-  // Format in user's local timezone
   const localStr = d
     .toLocaleString("en-CA", { timeZone: tz, hour12: false })
     .replace(", ", "_")
     .replace(/:/g, "-")
     .replace(/\//g, "-");
   const ts = localStr.slice(0, 19); // YYYY-MM-DD_HH-MM-SS
-  const filename = `${prefix} - ${ts}.txt`;
+
+  // ── JSON export ────────────────────────────────────────────────────────────
+  if (format === "json") {
+    const payload = {
+      playlist: {
+        title: playlist.title,
+        channel: playlist.channel_name ?? null,
+        exported_at: new Date().toISOString(),
+      },
+      videos: videos.map((v, i) => ({
+        position: v.position ?? i + 1,
+        title: v.title,
+        url: `https://www.youtube.com/watch?v=${v.yt_video_id}`,
+        transcript: v.transcript ?? "",
+      })),
+    };
+    return new NextResponse(JSON.stringify(payload, null, 2), {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${prefix} - ${ts}.json"`,
+      },
+    });
+  }
+
+  // ── TXT export (default) ───────────────────────────────────────────────────
+  const text = videos
+    .map((v, i) => `=== ${i + 1}. ${v.title} ===\n\n${v.transcript}`)
+    .join("\n\n\n");
 
   return new NextResponse(text, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `attachment; filename="${prefix} - ${ts}.txt"`,
     },
   });
 }
+
