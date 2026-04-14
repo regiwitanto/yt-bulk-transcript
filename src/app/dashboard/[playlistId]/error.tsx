@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function DashboardError({
   error,
@@ -46,9 +46,9 @@ export default function DashboardError({
         </div>
         <div className="flex gap-3">
           <Button onClick={() => reset()}>Try again</Button>
-          <Button variant="outline" asChild>
-            <Link href="/history">My History</Link>
-          </Button>
+          <Link href="/history" className={buttonVariants({ variant: "outline" })}>
+            My History
+          </Link>
         </div>
       </main>
     </div>
